@@ -21,11 +21,18 @@
 #'   carries a `Date` or `POSIXct` class the axis is drawn as a calendar axis;
 #'   any other numeric vector is used as-is.
 #' @param alpha Numeric. Fill transparency for shaded regions (default 0.25).
+#' @param band Logical. If `TRUE` (default), shade the null tolerance band in
+#'   the lower panel: the region between \eqn{\rho_t} and the critical value
+#'   \eqn{\rho_t + z_{\alpha_{\mathrm{eff}}}\sqrt{V_t/s}} below which
+#'   \eqn{R_t} is flagged. Because \eqn{\rho_t} and \eqn{V_t} both vary with
+#'   \eqn{t}, the band explains why the deepest dip in \eqn{R_t} is not
+#'   necessarily the flagged one.
 #'
 #' @return Invisibly returns `NULL`. Called for its side effect (base R plot).
 #'
 #' @export
-lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
+lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25,
+                       band = TRUE) {
 
   if (is.null(tst))
     stop("lomad_plot() requires a `tst` argument (lomad_test result).")
@@ -34,6 +41,7 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
   s     <- fit$inputs$s
   R     <- fit$R
   rho   <- fit$rho
+  V     <- fit$V
   ma1   <- fit$ma1
   ma2   <- fit$ma2
   trend <- fit$trend
@@ -82,11 +90,19 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
 
   # Lower panel: R_t with rho_t reference
   graphics::par(mar = c(0, 4, 0, 1))
-  R_range  <- range(c(R, rho), na.rm = TRUE)
+  # Null tolerance band: the test rejects exactly where R_t falls below
+  # crit_t = rho_t + z_{alpha_eff} sqrt(V_t / s). Drawing it explains why the
+  # deepest dip in R_t need not be significant — rho_t and V_t move too.
+  crit <- if (band && !is.null(tst$alpha_eff))
+    rho + stats::qnorm(tst$alpha_eff) * sqrt(V / s) else NULL
+
+  R_range  <- range(c(R, rho, crit), na.rm = TRUE)
   ylim_bot <- c(min(R_range[1], -0.1) - 0.05, max(R_range[2], 0.1) + 0.05)
   graphics::plot(t_idx, R, type = "n", ylim = ylim_bot,
                  xlab = "", ylab = "correlation", xaxt = "n")
   .shade_intervals(t_idx, shade_lo_starts, shade_lo_ends, shade_col)
+  if (!is.null(crit))
+    .band_polygon(t_idx, crit, rho, grDevices::rgb(0.55, 0.55, 0.55, 0.22))
   graphics::lines(t_idx, R, col = "grey40")
   graphics::lines(t_idx, rho, col = "grey30", lty = 2, lwd = 1)
   graphics::abline(h = 0, col = "grey80", lty = 1, lwd = 0.5)
@@ -135,4 +151,20 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
   s   <- as.integer(s)
   for (t in which(rejected)) out[max(1L, t - (s - 1L)):t] <- TRUE
   out
+}
+
+
+# Fill between two curves over contiguous runs where both are finite.
+.band_polygon <- function(x, lo, hi, col) {
+  ok <- is.finite(lo) & is.finite(hi)
+  if (!any(ok)) return(invisible(NULL))
+  r      <- rle(ok)
+  ends   <- cumsum(r$lengths)
+  starts <- ends - r$lengths + 1L
+  for (k in which(r$values)) {
+    i <- starts[k]:ends[k]
+    graphics::polygon(c(x[i], rev(x[i])), c(lo[i], rev(hi[i])),
+                      col = col, border = NA)
+  }
+  invisible(NULL)
 }

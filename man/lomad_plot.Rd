@@ -4,7 +4,7 @@
 \alias{lomad_plot}
 \title{Plot detected decoupling periods from a lomad fit}
 \usage{
-lomad_plot(fit, tst, dates = NULL, alpha = 0.25)
+lomad_plot(fit, tst, dates = NULL, alpha = 0.25, band = TRUE)
 }
 \arguments{
 \item{fit}{List returned by \code{\link[=lomad_fit]{lomad_fit()}}.}
@@ -16,6 +16,13 @@ carries a \code{Date} or \code{POSIXct} class the axis is drawn as a calendar ax
 any other numeric vector is used as-is.}
 
 \item{alpha}{Numeric. Fill transparency for shaded regions (default 0.25).}
+
+\item{band}{Logical. If \code{TRUE} (default), shade the null tolerance band in
+the lower panel: the region between \eqn{\rho_t} and the critical value
+\eqn{\rho_t + z_{\alpha_{\mathrm{eff}}}\sqrt{V_t/s}} below which
+\eqn{R_t} is flagged. Because \eqn{\rho_t} and \eqn{V_t} both vary with
+\eqn{t}, the band explains why the deepest dip in \eqn{R_t} is not
+necessarily the flagged one.}
 }
 \value{
 Invisibly returns \code{NULL}. Called for its side effect (base R plot).

@@ -57,14 +57,29 @@ The observed series are dominated by noise; the trends (which we know here,
 but would not in practice) are shown in black:
 
 ```{r raw-series, fig.height = 5.5}
+# Shared y limits: the panels are only comparable on a common scale.
+ylim <- range(c(dcp$y1, dcp$y2))
+
 op <- par(mfrow = c(2, 1), mar = c(3.5, 4, 2, 1))
-plot(dcp$t, dcp$y1, type = "l", col = "grey70",
+plot(dcp$t, dcp$y1, type = "l", col = "grey70", ylim = ylim,
      main = "Decoupled scenario: series 1", xlab = "t", ylab = "y1")
 lines(dcp$t, dcp$nu1, lwd = 2)
-plot(dcp$t, dcp$y2, type = "l", col = "grey70",
+plot(dcp$t, dcp$y2, type = "l", col = "grey70", ylim = ylim,
      main = "Decoupled scenario: series 2", xlab = "t", ylab = "y2")
 lines(dcp$t, dcp$nu2, lwd = 2)
 par(op)
+```
+
+The trends are close enough that the difference is hard to see at this scale —
+which is the point: separation that matters for the test need not be visible by
+eye. Overlaying just the two trends makes it legible:
+
+```{r trends-overlay, fig.height = 3}
+plot(dcp$t, dcp$nu1, type = "l", lwd = 2, col = "#0072B2", ylim = range(c(dcp$nu1, dcp$nu2)),
+     main = "True trends", xlab = "t", ylab = expression(nu))
+lines(dcp$t, dcp$nu2, lwd = 2, col = "#D55E00")
+legend("topright", c(expression(nu[1]), expression(nu[2])),
+       col = c("#0072B2", "#D55E00"), lwd = 2, bty = "n", horiz = TRUE)
 ```
 
 ### Fitting and testing
@@ -95,7 +110,14 @@ sum(tst_dcp$rejected, na.rm = TRUE)
 ```
 
 `lomad_plot()` displays the smoothed series and the rolling correlation
-against its null benchmark, shading the flagged windows:
+against its null benchmark, shading the flagged windows. Two features are
+worth reading carefully. The upper band is *wider* than the lower one and sits
+to its left: a rejection at time $t$ concerns the whole window
+$W_t = \{t-s+1, \ldots, t\}$, so the upper panel spans the smoothed values
+that entered the correlation, while the lower panel marks the $t$ where $R_t$
+is plotted. The grey ribbon in the lower panel is the null tolerance band,
+running from $\rho_t$ down to the critical value below which $R_t$ is
+flagged; the test fires exactly where $R_t$ leaves it.
 
 ```{r plot-decoupled, fig.height = 6}
 lomad_plot(fit_dcp, tst_dcp)
@@ -149,6 +171,9 @@ lomad_plot(fit_b2, tst_b2, dates = b2$datetime)
 
 The test flags one sustained episode in which the local correlation between
 oxygen and pH trends falls significantly below its shared-trend benchmark.
+Note that the flagged stretch is *not* the deepest dip in $R_t$: the tolerance
+band widens sharply there because $\rho_t$ falls and $V_t$ grows, so the
+deeper dip is the less surprising one.
 For comparison, the shorter autumn 2023 block shows no flagged points — the
 two trends remain coupled throughout:
 
