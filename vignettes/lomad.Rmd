@@ -1,0 +1,184 @@
+---
+title: "Detecting local decoupling with lomad"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Detecting local decoupling with lomad}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  fig.width = 7, fig.height = 4.5, dpi = 96,
+  message = FALSE, warning = FALSE
+)
+library(lomad)
+```
+
+## Overview
+
+`lomad` (**lo**cal **m**oving **a**verage **d**ecoupling) tests whether the
+underlying trends of two noisy time series are *locally similar* — moving
+together up to a location shift — or whether they *decouple* over some time
+windows. Given paired series following a trend-plus-noise model, the method:
+
+1. smooths each series with a moving average of width $h$ to expose the trends;
+2. computes the rolling correlation $R_t$ of the smoothed series over windows
+   of length $s$;
+3. compares $R_t$ pointwise against the local population correlation
+   $\rho_t$ implied by a shared-trend null model, using a CLT-based $Z$
+   statistic with Benjamini–Yekutieli false discovery rate control.
+
+Intuitively, a shared trend induces the highest local correlation attainable
+at the prevailing signal-to-noise ratio; genuine trend separation attenuates
+$R_t$ below that benchmark. The null quantities $\rho_t$ and $V_t$ are
+estimated from the data using a variogram-based noise fit that is robust to
+trend contamination.
+
+This vignette walks through the workflow twice: on simulated data where the
+truth is known, and on real estuarine monitoring data.
+
+## Simulated example
+
+The packaged dataset `sim_decoupling` contains two scenarios built from the
+same base trends and AR(1) noise process. In the `"coupled"` scenario the two
+trends are identical ($d = 0$), so the null hypothesis of local similarity
+holds everywhere. In the `"decoupled"` scenario the trends separate in
+localized episodes ($d = 1.5$).
+
+```{r data}
+str(sim_decoupling)
+cpl <- subset(sim_decoupling, scenario == "coupled")
+dcp <- subset(sim_decoupling, scenario == "decoupled")
+```
+
+The observed series are dominated by noise; the trends (which we know here,
+but would not in practice) are shown in black:
+
+```{r raw-series, fig.height = 5.5}
+op <- par(mfrow = c(2, 1), mar = c(3.5, 4, 2, 1))
+plot(dcp$t, dcp$y1, type = "l", col = "grey70",
+     main = "Decoupled scenario: series 1", xlab = "t", ylab = "y1")
+lines(dcp$t, dcp$nu1, lwd = 2)
+plot(dcp$t, dcp$y2, type = "l", col = "grey70",
+     main = "Decoupled scenario: series 2", xlab = "t", ylab = "y2")
+lines(dcp$t, dcp$nu2, lwd = 2)
+par(op)
+```
+
+### Fitting and testing
+
+`lomad_fit()` runs the estimation pipeline and `lomad_test()` applies the
+FDR-corrected pointwise test; `lomad()` wraps both. We use the smoothing
+bandwidth the data were calibrated at ($h = 5$) and a rolling window of
+$s = 125$ points:
+
+```{r fit}
+fit_cpl <- lomad_fit(cpl$y1, cpl$y2, h = 5, s = 125)
+tst_cpl <- lomad_test(fit_cpl, alpha = 0.05)
+
+fit_dcp <- lomad_fit(dcp$y1, dcp$y2, h = 5, s = 125)
+tst_dcp <- lomad_test(fit_dcp, alpha = 0.05)
+```
+
+In the coupled scenario nothing is flagged, as it should be:
+
+```{r coupled-result}
+sum(tst_cpl$rejected, na.rm = TRUE)
+```
+
+In the decoupled scenario the test flags contiguous runs of time points:
+
+```{r decoupled-result}
+sum(tst_dcp$rejected, na.rm = TRUE)
+```
+
+`lomad_plot()` displays the smoothed series and the rolling correlation
+against its null benchmark, shading the flagged windows:
+
+```{r plot-decoupled, fig.height = 6}
+lomad_plot(fit_dcp, tst_dcp)
+```
+
+Because this is simulated data, we can verify the flags line up with the true
+separation episodes:
+
+```{r truth-check}
+sep <- abs(dcp$nu1 - dcp$nu2)
+plot(dcp$t, sep, type = "l", lwd = 2, xlab = "t",
+     ylab = "|nu1 - nu2|", main = "True trend separation vs. flagged points")
+flagged <- which(tst_dcp$rejected)
+rug(flagged, col = "red", lwd = 2)
+```
+
+The flagged points (red rug) concentrate where the true trends actually
+separate. Note the test flags windows where the *rolling correlation over the
+trailing $s$ points* is depressed, so flags trail the onset of separation —
+localization is at window, not point, resolution.
+
+## Real-data example: Morro Bay
+
+The packaged dataset `morro_bay` contains two contiguous blocks of
+quality-controlled dissolved oxygen and pH monitoring data from the Bay South
+station of the Morro Bay estuary (CeNCOOS sensors), standardized, tidally
+presmoothed, and downsampled to 6-hourly resolution (see `?morro_bay`).
+Dissolved oxygen and pH are biogeochemically linked in an estuary, so
+persistent local decoupling of their trends is a potential indicator of a
+disturbance to the system.
+
+```{r mb-data}
+b2 <- subset(morro_bay, block == 2)     # Apr-Dec 2020
+range(b2$datetime)
+```
+
+With 6-hourly data we smooth over one day ($h = 4$) and use 15-day rolling
+windows ($s = 60$), matching the accompanying paper's application. The noise
+in this system has non-trivial autocorrelation structure, so we use the
+BIC-selected AR noise model rather than the AR(1) default:
+
+```{r mb-fit}
+fit_b2 <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60, noise_method = "arma")
+tst_b2 <- lomad_test(fit_b2, alpha = 0.05)
+sum(tst_b2$rejected, na.rm = TRUE)
+```
+
+```{r mb-plot, fig.height = 6}
+lomad_plot(fit_b2, tst_b2, dates = b2$datetime)
+```
+
+The test flags one sustained episode in which the local correlation between
+oxygen and pH trends falls significantly below its shared-trend benchmark.
+For comparison, the shorter autumn 2023 block shows no flagged points — the
+two trends remain coupled throughout:
+
+```{r mb-block21}
+b21 <- subset(morro_bay, block == 21)
+fit_b21 <- lomad_fit(b21$o2, b21$ph, h = 4, s = 60, noise_method = "arma")
+tst_b21 <- lomad_test(fit_b21, alpha = 0.05)
+sum(tst_b21$rejected, na.rm = TRUE)
+```
+
+## Choosing h and s
+
+- **`h` (smoothing bandwidth)** should span the dominant noise scale while
+  remaining short relative to the scale on which the trends vary: larger `h`
+  suppresses more noise but biases the trend estimate where it bends.
+- **`s` (rolling window)** trades temporal resolution against stability of
+  the local correlation; the underlying asymptotics treat `s` as large. As a
+  rule of thumb, `s` should cover at least several `h`-widths.
+- Passing `h = NULL, s = NULL` invokes simple length-based defaults, but for
+  real applications both should be chosen from subject-matter time scales, as
+  done above (1-day smoothing, 15-day windows).
+
+## Notes
+
+- The pointwise test is one-sided: only correlation *deficits* relative to
+  the null benchmark count as evidence of decoupling.
+- `lomad_test()` reports the effective significance threshold
+  (`alpha_eff`) implied by the Benjamini–Yekutieli correction.
+- For noise with complex or oscillatory autocorrelation, prefer
+  `noise_method = "arma"`, and heed warnings from the AR(1) variogram
+  estimator about boundary fits.
+- Oracle-style analyses (known noise parameters) can bypass estimation via
+  the `noise_override` argument of `lomad_fit()`.

@@ -52,3 +52,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 .positai
+vignettes/*.R
+/doc/
+/Meta/

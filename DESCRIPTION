@@ -12,6 +12,8 @@ Description: Detects and characterizes periods of decoupling between two
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 3.5)
 Imports:
     fda,
     mvtnorm,
@@ -21,6 +23,10 @@ Imports:
     graphics,
     grDevices
 Suggests:
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
+VignetteBuilder: knitr
+LazyData: true
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0
