@@ -66,7 +66,14 @@
   sigma1_sq <- acov1[1L]
   sigma2_sq <- acov2[1L]
 
-  noise_bias <- (sigma1_sq + sigma2_sq) / 4L
+  # The trend estimate carries a noise component xi_t = (eta_1t + eta_2t)/2
+  # with ACVF (gamma_1 + gamma_2)/4 under cross-series independence. Its
+  # contribution to the windowed signal variance is the *expected windowed*
+  # variance of xi — not its marginal variance (sigma1_sq + sigma2_sq)/4,
+  # which over-subtracts when the smoothed noise is autocorrelated (the
+  # window mean absorbs low-frequency noise variation).
+  acov_xi    <- (acov1 + acov2) / 4
+  noise_bias <- max(0, .windowed_var_expect(acov_xi, s))
 
   tau_sq <- pmax(0, compute_tau_sq(tr$trend, s) - noise_bias)
   rho    <- compute_rho(tau_sq, sigma1_sq, sigma2_sq)

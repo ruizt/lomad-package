@@ -122,3 +122,36 @@ test_that(".ma_filter_acov: white noise with h>1", {
   expect_equal(result[1], sigma2 / h, tolerance = 1e-10,
                label = "gamma_eta(0) = sigma2/h for white noise")
 })
+
+
+# ---- .windowed_var_expect ----
+
+test_that(".windowed_var_expect: white noise gives (1 - 1/s) * sigma2", {
+  sigma2 <- 3
+  acov   <- c(sigma2, rep(0, 20))
+  s      <- 25
+  expect_equal(.windowed_var_expect(acov, s), (1 - 1 / s) * sigma2,
+               tolerance = 1e-12)
+})
+
+test_that(".windowed_var_expect: matches brute-force double sum for AR(1)", {
+  phi  <- 0.7
+  s    <- 30
+  acov <- phi^(0:(s - 1))                       # gamma(l) = phi^l (sigma2 = 1-ish scale)
+  # brute force: gamma(0) - (1/s^2) sum_{t,u} gamma(|t - u|)
+  G  <- outer(1:s, 1:s, function(t, u) acov[abs(t - u) + 1])
+  bf <- acov[1] - sum(G) / s^2
+  expect_equal(.windowed_var_expect(acov, s), bf, tolerance = 1e-12)
+})
+
+test_that(".windowed_var_expect: below marginal variance for positive ACVF", {
+  acov <- unname(arma_acov(ar = 0.8, sigma2 = 1, lag_max = 50))
+  expect_lt(.windowed_var_expect(acov, 40), acov[1])
+})
+
+test_that(".windowed_var_expect: truncates lags beyond acov length", {
+  acov <- c(2, 1)                               # only lags 0, 1 available
+  s    <- 10
+  manual <- (1 - 1 / s) * 2 - (2 / s^2) * (s - 1) * 1
+  expect_equal(.windowed_var_expect(acov, s), manual, tolerance = 1e-12)
+})
