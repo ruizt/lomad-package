@@ -2,11 +2,17 @@ Package: lomad
 Title: Local Moving Average Decoupling
 Version: 0.0.1
 Authors@R: c(
-    person("Trevor", "Ruiz", email = "truiz01@calpoly.edu", role = c("aut", "cre")),
-    person("Alea", "Seifert", role = c("aut")),
-    person("Catherine", "Mispagel", role = c("aut")),
-    person("Emma", "Hamilton", role = c("aut")),
-    person("Andres", "Rocha", role = c("aut")))
+    person("Trevor", "Ruiz", email = "truiz01@calpoly.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1452-2542",
+                       "method implementation and inference pipeline")),
+    person("Alea", "Seifert", role = "aut",
+           comment = "simulation infrastructure"),
+    person("Emma", "Hamilton", role = "aut",
+           comment = "trend simulation"),
+    person("Catherine", "Mispagel", role = "aut",
+           comment = "noise simulation"),
+    person("Andres", "Rocha", role = "aut",
+           comment = "independent validation implementation"))
 Description: Detects and characterizes periods of decoupling between two
     time series using correlations between local moving averages.
 License: MIT + file LICENSE
