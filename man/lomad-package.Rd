@@ -5,7 +5,7 @@
 \alias{lomad-package}
 \title{lomad: Local Moving Average Decoupling}
 \description{
-Detects and characterizes periods of decoupling between two time series using correlations between local moving averages.
+Detects localized periods of decoupling between two time series using correlations between local moving averages.
 }
 \references{
 Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,

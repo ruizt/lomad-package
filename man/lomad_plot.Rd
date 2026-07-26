@@ -11,7 +11,9 @@ lomad_plot(fit, tst, dates = NULL, alpha = 0.25)
 
 \item{tst}{List returned by \code{\link[=lomad_test]{lomad_test()}}.}
 
-\item{dates}{Optional vector of dates or axis labels.}
+\item{dates}{Optional vector of x-axis values, length \code{fit$inputs$n}. If it
+carries a \code{Date} or \code{POSIXct} class the axis is drawn as a calendar axis;
+any other numeric vector is used as-is.}
 
 \item{alpha}{Numeric. Fill transparency for shaded regions (default 0.25).}
 }

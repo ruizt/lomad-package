@@ -299,3 +299,26 @@ test_that("lomad_plot shades a wider region above than below", {
   expect_gt(sum(upper), sum(lower))
   expect_true(all(which(lower) %in% which(upper)))   # lower is a subset
 })
+
+
+# ---- lomad_plot dates handling ----
+
+test_that("lomad_plot validates the length of `dates`", {
+  b2  <- subset(morro_bay, block == 2)
+  fit <- suppressWarnings(suppressMessages(
+    lomad_fit(b2$o2, b2$ph, h = 4, s = 60, noise_method = "arma")))
+  tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
+  expect_error(lomad_plot(fit, tst, dates = b2$datetime[1:10]), "must have length")
+})
+
+test_that("lomad_plot draws a calendar axis for POSIXct and plain axis otherwise", {
+  b2  <- subset(morro_bay, block == 2)
+  fit <- suppressWarnings(suppressMessages(
+    lomad_fit(b2$o2, b2$ph, h = 4, s = 60, noise_method = "arma")))
+  tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
+  pf <- tempfile(fileext = ".png")
+  png(pf); on.exit(unlink(pf), add = TRUE)
+  expect_silent(lomad_plot(fit, tst, dates = b2$datetime))   # POSIXct
+  expect_silent(lomad_plot(fit, tst))                        # integer index
+  dev.off()
+})

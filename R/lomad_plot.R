@@ -17,7 +17,9 @@
 #'
 #' @param fit List returned by [lomad_fit()].
 #' @param tst List returned by [lomad_test()].
-#' @param dates Optional vector of dates or axis labels.
+#' @param dates Optional vector of x-axis values, length `fit$inputs$n`. If it
+#'   carries a `Date` or `POSIXct` class the axis is drawn as a calendar axis;
+#'   any other numeric vector is used as-is.
 #' @param alpha Numeric. Fill transparency for shaded regions (default 0.25).
 #'
 #' @return Invisibly returns `NULL`. Called for its side effect (base R plot).
@@ -38,6 +40,10 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
 
   rejected <- tst$rejected
   rejected[is.na(rejected)] <- FALSE
+
+  if (!is.null(dates) && length(dates) != n)
+    stop(sprintf("`dates` must have length %d (the series length), not %d.",
+                 n, length(dates)))
 
   t_idx <- if (is.null(dates)) seq_len(n) else dates
 
@@ -84,7 +90,17 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
   graphics::lines(t_idx, R, col = "grey40")
   graphics::lines(t_idx, rho, col = "grey30", lty = 2, lwd = 1)
   graphics::abline(h = 0, col = "grey80", lty = 1, lwd = 0.5)
-  graphics::axis(1)
+
+  # Draw a calendar axis when `dates` carries a date/time class; plotting
+  # against POSIXct or Date otherwise labels the axis in seconds or days
+  # since the epoch.
+  if (inherits(t_idx, "POSIXt")) {
+    graphics::axis.POSIXct(1, x = t_idx)
+  } else if (inherits(t_idx, "Date")) {
+    graphics::axis.Date(1, x = t_idx)
+  } else {
+    graphics::axis(1)
+  }
 
   invisible(NULL)
 }
