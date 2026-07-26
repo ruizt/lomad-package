@@ -10,14 +10,14 @@ Authors@R: c(
 Description: Detects and characterizes periods of decoupling between two
     time series using correlations between local moving averages.
 License: MIT + file LICENSE
+URL: https://github.com/ruizt/lomad-package
+BugReports: https://github.com/ruizt/lomad-package/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 3.5)
 Imports:
     fda,
-    mvtnorm,
-    parallel,
     roll,
     stats,
     graphics,
