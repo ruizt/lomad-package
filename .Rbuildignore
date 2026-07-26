@@ -9,3 +9,6 @@
 ^_img$
 ^_mb-data$
 
+^data-raw$
+^doc$
+^Meta$

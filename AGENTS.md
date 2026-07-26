@@ -26,7 +26,7 @@ Internal helpers live in `utils-{theme}.R`:
 |------|-------|----------|
 | `utils-sim.R` | Simulation | `.generate_fourier_coef`, `.generate_coef_pair`, `.make_basis_trends`, `.make_w_smooth`, `.make_w_cross`, `.make_w_rate`, `.apply_w`, `.pacf_to_arma_coefs` |
 | `utils-estimate.R` | Estimation | `.variogram_ar1`, `.variogram_ar`, `.yule_walker`, `.fit_arma`, `.select_arma`, `.smooth_noise_var` |
-| `utils-clt.R` | CLT theory | `.ma_filter_acov`, `.ma_filtered_var`, `compute_tau_sq`, `compute_rho`, `compute_V` |
+| `utils-clt.R` | CLT theory | `.ma_filter_acov`, `.ma_filtered_var`, `.windowed_var_expect`, `compute_tau_sq`, `compute_rho`, `compute_V` |
 | `utils-lomad-fit.R` | Fit implementation | `.lomad_fit_clt` |
 | `utils-lomad-test.R` | Test implementation | `.lomad_test_clt` |
 
@@ -142,5 +142,8 @@ R/
 ├── utils-lomad-test.R        # .lomad_test_clt
 │
 ├── arma_acov.R               # arma_acov(), acov_sums()
-└── utils-clt.R               # .ma_filter_acov, .ma_filtered_var, compute_tau_sq, compute_rho, compute_V
+├── utils-clt.R               # .ma_filter_acov, .ma_filtered_var, .windowed_var_expect, compute_tau_sq, compute_rho, compute_V
+│
+├── data.R                    # documentation for packaged datasets (sim_decoupling, morro_bay)
+└── lomad-package.R           # package-level documentation and references
 ```
