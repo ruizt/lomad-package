@@ -15,7 +15,7 @@ related functions:
 |--------|-------|-------|
 | `sim_` | Simulation / data generation | `sim_trends.R`, `sim_noise.R` |
 | `estimate_` | Parameter estimation | `estimate_trends.R`, `estimate_noise.R` |
-| `lomad_` | Method implementations | `lomad.R`, `lomad_fit.R`, `lomad_test.R`, `lomad_test_identity.R`, `lomad_plot.R` |
+| `lomad_` | Method implementations | `lomad.R`, `lomad_fit.R`, `lomad_test.R`, `lomad_plot.R` |
 | *(none)* | CLT building blocks | `arma_acov.R` |
 
 ### Internal utilities
@@ -25,7 +25,7 @@ Internal helpers live in `utils-{theme}.R`:
 | File | Theme | Contents |
 |------|-------|----------|
 | `utils-sim.R` | Simulation | `.generate_fourier_coef`, `.generate_coef_pair`, `.make_basis_trends`, `.make_w_smooth`, `.make_w_cross`, `.make_w_rate`, `.apply_w`, `.pacf_to_arma_coefs` |
-| `utils-estimate.R` | Estimation | `.variogram_ar1`, `.variogram_ar`, `.variogram_acov`, `.yule_walker`, `.fit_arma`, `.select_arma`, `.smooth_noise_var` |
+| `utils-estimate.R` | Estimation | `.variogram_ar1`, `.variogram_ar`, `.variogram_acov`, `.yule_walker` |
 | `utils-clt.R` | CLT theory | `.ma_filter_acov`, `.ma_filtered_var`, `.windowed_var_expect`, `compute_tau_sq`, `compute_rho`, `compute_V` |
 | `utils-lomad-fit.R` | Fit implementation | `.lomad_fit_clt` |
 | `utils-lomad-test.R` | Test implementation | `.lomad_test_clt` |
@@ -63,12 +63,6 @@ lomad_test(fit, alpha = 0.05)
 
 BY-corrected pointwise Z-test on the fit.
 
-### `lomad_test_identity()`
-
-Standalone pointwise test of exact trend identity. Optional `noise_override`
-(list with `ar`, `ma` (optional), `sigma2` for one noise series) bypasses
-ARMA estimation for oracle experiments. The difference variance is computed
-internally as twice the single-series variance.
 
 ### `lomad()`
 
@@ -91,9 +85,8 @@ Tests live in `tests/testthat/` with one file per theme:
 |------|--------|
 | `test-clt.R` | `arma_acov`, `acov_sums`, `compute_rho`, `compute_V`, `compute_tau_sq`, `.ma_filter_acov` |
 | `test-sim.R` | `sim_trends`, `sim_noise`, `sim_noise_pair`, key internals |
-| `test-estimate.R` | `estimate_trends`, `estimate_ar1_noise`, `estimate_arma_noise`, `.variogram_*`, `.select_arma` |
+| `test-estimate.R` | `estimate_trends`, `estimate_ar1_noise`, `estimate_arma_noise`, `estimate_acf_noise`, `.variogram_*` |
 | `test-lomad.R` | `lomad`, `lomad_fit`, `lomad_test` — structural tests |
-| `test-lomad-identity.R` | `lomad_test_identity` |
 
 ### Testing internals
 
@@ -131,12 +124,11 @@ R/
 │
 ├── estimate_trends.R         # estimate_trends()
 ├── estimate_noise.R          # estimate_ar1_noise(), estimate_arma_noise(), estimate_acf_noise()
-├── utils-estimate.R          # .select_arma, .variogram_*, .yule_walker, .fit_arma, .smooth_noise_var
+├── utils-estimate.R          # .variogram_*, .yule_walker
 │
 ├── lomad.R                   # lomad()
 ├── lomad_fit.R               # lomad_fit()
 ├── lomad_test.R              # lomad_test()
-├── lomad_test_identity.R     # lomad_test_identity()
 ├── lomad_plot.R              # lomad_plot(), .shade_intervals
 ├── utils-lomad-fit.R         # .lomad_fit_clt
 ├── utils-lomad-test.R        # .lomad_test_clt
