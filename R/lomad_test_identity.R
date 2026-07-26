@@ -32,6 +32,16 @@
 #'       (NULL when `noise_override` is used).}
 #'   }
 #'
+#' @references
+#' Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
+#' Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity
+#' in nonstationary time series via rolling correlation, with application to
+#' assessing stability in an estuarine system. Manuscript in preparation.
+#'
+#' Benjamini, Y. and Yekutieli, D. (2001). The control of the false discovery
+#' rate in multiple testing under dependency. \emph{The Annals of Statistics},
+#' 29(4), 1165--1188.
+#'
 #' @export
 lomad_test_identity <- function(x1, x2, q, max_pq = 3L, alpha = 0.05,
                                 q_se = 10L * q, noise_override = NULL) {

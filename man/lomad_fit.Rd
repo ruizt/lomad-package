@@ -56,6 +56,12 @@ two time series. Runs the CLT pipeline: MA trend estimation, noise
 fitting, and rolling computation of \eqn{R_t}, \eqn{\rho_t},
 and \eqn{V_t}.
 }
+\references{
+Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
+Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity
+in nonstationary time series via rolling correlation, with application to
+assessing stability in an estuarine system. Manuscript in preparation.
+}
 \seealso{
 \code{\link[=lomad_test]{lomad_test()}}, \code{\link[=lomad]{lomad()}}, \code{\link[=lomad_plot]{lomad_plot()}}
 }

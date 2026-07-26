@@ -1,13 +1,14 @@
 # lomad
 
-**Lo**cal **M**oving **A**verage **D**ecoupling — an R package for detecting
-and characterizing periods of decoupling between two correlated time series.
+**Lo**cal **M**oving **A**verage **D**ecoupling — an R package for detecting 
+periods of trend similarity and decoupling between two mean-nonstationary time 
+series.
 
 ## Overview
 
-`lomad` provides a statistical framework for detecting time windows in which
-two previously correlated series exhibit locally low correlation. Given paired
-series following a signal-plus-noise model, the method:
+`lomad` implements the method of Ruiz *et al.* (2026) for detecting and 
+localizing periods of dissimilarity between otherwise correlated moving 
+averages. The method:
 
 1. Smooths each series with a moving average filter to isolate trends.
 2. Computes rolling window correlations on the smoothed series.
@@ -16,8 +17,9 @@ series following a signal-plus-noise model, the method:
    Benjamini–Yekutieli FDR correction.
 
 Noise parameters (AR/ARMA) are estimated via a variogram-based approach that
-is robust to trend contamination. The asymptotic variance of the local
-correlation accounts for autocorrelation in the smoothed noise.
+is robust to trend contamination (Hall and Van Keilegom, 2003). The asymptotic 
+variance of the local correlation accounts for autocorrelation in the smoothed 
+noise.
 
 ### Core workflow
 
@@ -44,6 +46,10 @@ correlation accounts for autocorrelation in the smoothed noise.
 ### From GitHub
 
 ```r
+# pak (recommended)
+pak::pak("ruizt/lomad-package")
+
+# or, with remotes
 remotes::install_github("ruizt/lomad-package")
 ```
 
@@ -104,6 +110,20 @@ out <- lomad(sim$y1, sim$y2, h = 10, s = 50, alpha = 0.05)
 out$fit   # lomad_fit output
 out$test  # lomad_test output
 ```
+
+## Citation
+
+If you use `lomad`, please cite the methods paper (and the software where the
+specific implementation is relevant):
+
+> Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
+> Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity
+> in nonstationary time series via rolling correlation, with application to
+> assessing stability in an estuarine system. Manuscript in preparation.
+
+Run `citation("lomad")` for BibTeX entries for both the paper and the software.
+Method references for individual functions appear in their help pages (e.g.
+`?estimate_arma_noise`, `?lomad_test`).
 
 ## For contributors
 
