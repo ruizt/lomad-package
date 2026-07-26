@@ -130,9 +130,8 @@ with `devtools::load_all()`.
 
 See `AGENTS.md` for source conventions.
 
-All development work built on this package — simulation studies, the Morro Bay
-field analysis, numerical validation, and the Tide/Kubernetes HPC scaffolding —
-lives in the companion repository
+All analyses reported in the methods paper — numerical validation, simulation 
+studies, and the Morro Bay field analysis — live in the companion repository
 [`lomad-analysis`](https://github.com/ruizt/lomad-analysis), which installs
 this package from GitHub.
 
