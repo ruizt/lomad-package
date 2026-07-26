@@ -37,6 +37,27 @@
   .ma_filter_acov(acov, h, lag_max = 0L)[1L]
 }
 
+# Expected windowed sample variance of a stationary process.
+#
+# For a stationary process xi_t with ACVF gamma and a window W of s points,
+# the population-denominator sample variance satisfies
+#   E[(1/s) sum_{t in W} (xi_t - xi_bar_W)^2]
+#     = gamma(0) - (1/s^2) sum_{t,u in W} gamma(t - u)
+#     = (1 - 1/s) gamma(0) - (2/s^2) sum_{l=1}^{s-1} (s - l) gamma(l)
+#
+# This is smaller than the marginal variance gamma(0) whenever the process is
+# positively autocorrelated, because the window mean absorbs low-frequency
+# variation. Lags beyond length(acov) - 1 are treated as zero (truncation).
+#
+# acov : gamma(0), gamma(1), ... (nonnegative lags)
+# s    : window length
+.windowed_var_expect <- function(acov, s) {
+  s <- as.integer(s)
+  stopifnot(s >= 2L, length(acov) >= 1L)
+  l <- seq_len(min(s - 1L, length(acov) - 1L))
+  (1 - 1 / s) * acov[1L] - (2 / s^2) * sum((s - l) * acov[l + 1L])
+}
+
 
 # ---- Exported functions --------------------------------------------------
 
