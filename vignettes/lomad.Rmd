@@ -123,6 +123,25 @@ flagged; the test fires exactly where $R_t$ leaves it.
 lomad_plot(fit_dcp, tst_dcp)
 ```
 
+Neither panel shows the test statistic itself. `lomad_test()` returns it, and
+plotting it makes the decision rule concrete: $Z_t$ is standard normal under
+the null, and a window is flagged when it falls below the BY-adjusted
+threshold.
+
+```{r z-stat, fig.height = 3}
+plot(dcp$t, tst_dcp$Z, type = "l", col = "grey40",
+     xlab = "t", ylab = expression(Z[t]), main = "Test statistic")
+abline(h = 0, col = "grey70", lty = 2)
+abline(h = qnorm(tst_dcp$alpha_eff), col = "steelblue", lty = 2)
+rej <- which(tst_dcp$rejected)
+points(rej, tst_dcp$Z[rej], col = "#D55E00", pch = 16, cex = 0.6)
+```
+
+The dashed blue line is `qnorm(tst$alpha_eff)`; orange points are the
+rejections. Note it sits well below the -1.64 of an uncorrected one-sided
+test at 5% — that gap is the Benjamini–Yekutieli correction paying for
+`r sum(!is.na(tst_dcp$rejected))` simultaneous tests.
+
 Because this is simulated data, we can verify the flags line up with the true
 separation episodes:
 
@@ -195,6 +214,78 @@ sum(tst_b21$rejected, na.rm = TRUE)
 - Passing `h = NULL, s = NULL` invokes simple length-based defaults, but for
   real applications both should be chosen from subject-matter time scales, as
   done above (1-day smoothing, 15-day windows).
+
+## Simulating your own scenarios
+
+The packaged data covers one coupled and one decoupled case. To ask whether the
+method would see *your* problem — a separation of a given size, at your noise
+level and series length — build the scenario yourself. This is also how the
+accompanying paper's simulation studies are constructed.
+
+`sim_trends()` generates a pair of trends at a controlled $L^2$ separation
+$d$. How that separation is distributed over time is set by `method`:
+
+| `method` | Separation pattern |
+|---|---|
+| `"dist"` | unstructured — the trends differ everywhere, with no episode structure |
+| `"rate"` | separation concentrated at evenly spaced events, at rate `rate` |
+| `"smooth"` | episodes at irregular times, trends pushed apart symmetrically |
+| `"cross"` | as `"smooth"`, but the trends may cross rather than only diverge |
+
+The structured methods work through a *coupling weight* $w_t$: the trends sit
+on top of each other where $w_t \approx 1$ and separate as it falls. Plotting
+$w_t$ alongside the trends shows exactly where the method should have
+something to find.
+
+```{r sim-structures, fig.height = 6}
+op <- par(mfrow = c(3, 2), mar = c(3, 4, 2, 1))
+for (m in c("rate", "smooth", "cross")) {
+  args <- list(n = 500, d = 1.5, method = m, seed = 6183)
+  if (m == "rate") args$rate <- 0.01 else args$bw <- 50
+  tr <- do.call(sim_trends, args)
+
+  plot(tr$x1, type = "l", col = "steelblue", lwd = 2, ylab = expression(nu),
+       xlab = "", main = paste0('method = "', m, '"'),
+       ylim = range(c(tr$x1, tr$x2)))
+  lines(tr$x2, col = "tomato", lwd = 2)
+  plot(tr$w, type = "l", col = "grey30", ylab = expression(w[t]), xlab = "t",
+       main = "coupling weight")
+  abline(h = 1, col = "grey70", lty = 2)
+}
+par(op)
+```
+
+`sim_noise_pair()` then adds ARMA noise, calibrated so the signal-to-noise
+ratio hits a target at a given smoothing bandwidth — which is what makes runs
+comparable across scenarios rather than depending on the trend's amplitude:
+
+```{r sim-noise}
+tr  <- sim_trends(n = 500, d = 1.5, method = "smooth", bw = 50, seed = 6183)
+sim <- sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 6184)
+```
+
+Putting it together — simulate, fit, test, and see where the method fires
+relative to where the trends actually separate:
+
+```{r sim-worked, fig.height = 4.5}
+out <- lomad(sim$y1, sim$y2, h = 5, s = 125)
+sum(out$test$rejected, na.rm = TRUE)
+
+op <- par(mfrow = c(2, 1), mar = c(3, 4, 2, 1))
+plot(abs(tr$x1 - tr$x2), type = "l", lwd = 2, xlab = "",
+     ylab = expression(group("|", nu[1] - nu[2], "|")),
+     main = "True separation, with flagged windows")
+rug(which(out$test$rejected), col = "#D55E00", lwd = 2)
+plot(out$fit$R, type = "l", col = "grey40", xlab = "t", ylab = "correlation")
+lines(out$fit$rho, col = "steelblue", lwd = 2)
+par(op)
+```
+
+Two things to expect. Flags *trail* the onset of separation, because $R_t$ is
+computed over the trailing window $W_t$ — localization is at window
+resolution, not point resolution. And detection depends on separation relative
+to noise, not on $d$ alone: the same $d$ spread thinly over a long series is
+much harder to see than the same $d$ concentrated in one episode.
 
 ## Notes
 
