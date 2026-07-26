@@ -179,6 +179,8 @@ sum(tst_b21$rejected, na.rm = TRUE)
   (`alpha_eff`) implied by the Benjamini–Yekutieli correction.
 - For noise with complex or oscillatory autocorrelation, prefer
   `noise_method = "arma"`, and heed warnings from the AR(1) variogram
-  estimator about boundary fits.
+  estimator about boundary fits. When even the AR approximation is suspect,
+  `noise_method = "acf"` estimates the noise autocovariance nonparametrically
+  (model-free, conservatively anchored; see `?estimate_acf_noise`).
 - Oracle-style analyses (known noise parameters) can bypass estimation via
   the `noise_override` argument of `lomad_fit()`.

@@ -101,6 +101,71 @@
 }
 
 
+# Nonparametric ACVF from the multi-lag variogram, Bartlett-tapered.
+#
+# Same difference-based recovery as .variogram_ar — gamma_hat(l) = gamma_hat(0)
+# - V(l) with gamma_hat(0) anchored on the variogram plateau — but keeps the
+# nonparametric sequence instead of projecting it onto an AR(p) model. A
+# Bartlett taper (weights 1 - l/(b + 1), zero beyond b) stabilises the
+# long-run sums L, Q, Q12 computed downstream (Newey-West style); without it,
+# raw autocovariance sums can go negative.
+#
+# resid     : residual series (observed minus shared trend estimate)
+# lag_max   : length of the returned ACVF (lags 0..lag_max; zero beyond taper)
+# bandwidth : Bartlett taper bandwidth b. NULL uses ceiling(10 * log10(n)).
+# anchor    : gamma(0) anchor — "variance" (residual sample variance; tight,
+#             test stays calibrated, conservative under trend separation) or
+#             "plateau" (variogram plateau average; trend-robust but noisy —
+#             anchor error propagates coherently to all lags and can make
+#             the one-sided test anti-conservative).
+.variogram_acov <- function(resid, lag_max, bandwidth = NULL,
+                            anchor = c("variance", "plateau")) {
+  anchor <- match.arg(anchor)
+  n <- length(resid)
+  if (is.null(bandwidth)) bandwidth <- ceiling(10 * log10(n))
+  b <- max(1L, min(as.integer(bandwidth), n - 22L))
+
+  # Variogram out to the anchor band beyond the taper bandwidth
+  L <- min(b + 20L, n - 2L)
+  V <- numeric(L)
+  for (l in seq_len(L)) {
+    dl <- resid[(l + 1L):n] - resid[1:(n - l)]
+    V[l] <- mean(dl^2) / 2
+  }
+
+  gamma0 <- if (anchor == "variance") {
+    mean((resid - mean(resid))^2)
+  } else {
+    mean(V[max(b + 1L, ceiling(L / 2)):L])
+  }
+  if (gamma0 <= 0)
+    stop("gamma(0) anchor estimate is non-positive; cannot estimate the ",
+         "noise ACVF.")
+
+  # If the variogram is still climbing across the far lags, noise
+  # correlation may extend beyond the taper bandwidth.
+  plateau <- V[max(b + 1L, ceiling(L / 2)):L]
+  half <- length(plateau) %/% 2
+  if (half >= 3L) {
+    rise <- mean(plateau[(half + 1L):length(plateau)]) / mean(plateau[1:half])
+    if (is.finite(rise) && rise > 1.25)
+      warning(sprintf(paste0(
+        "Variogram is still rising at lag %d (late/early ratio %.2f); ",
+        "noise correlation may extend beyond the taper bandwidth. Consider ",
+        "a larger `bandwidth` or a different noise method."), L, rise))
+  }
+
+  gamma <- gamma0 - V                              # lags 1..L
+  wts   <- pmax(0, 1 - seq_len(L) / (b + 1L))     # Bartlett taper
+  acov  <- c(gamma0, gamma * wts)                 # lags 0..L
+
+  out <- numeric(lag_max + 1L)
+  k   <- min(lag_max + 1L, length(acov))
+  out[seq_len(k)] <- acov[seq_len(k)]
+  out
+}
+
+
 # Solve Yule-Walker equations for AR(p).
 .yule_walker <- function(gamma0, gamma_hat, p) {
   acvf <- c(gamma0, gamma_hat[seq_len(p)])

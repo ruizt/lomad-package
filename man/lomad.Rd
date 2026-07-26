@@ -24,6 +24,13 @@ A list with elements \verb{$fit} (\code{\link[=lomad_fit]{lomad_fit()}} result) 
 Convenience wrapper that calls \code{\link[=lomad_fit]{lomad_fit()}} followed by \code{\link[=lomad_test]{lomad_test()}}.
 Returns the combined fit and test results.
 }
+\examples{
+# Decoupled scenario from the packaged example data
+dcp <- subset(sim_decoupling, scenario == "decoupled")
+out <- lomad(dcp$y1, dcp$y2, h = 5, s = 125)
+sum(out$test$rejected, na.rm = TRUE)   # flagged time points
+
+}
 \references{
 Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
 Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity

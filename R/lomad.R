@@ -20,6 +20,12 @@
 #'
 #' @seealso [lomad_fit()], [lomad_test()], [lomad_plot()]
 #'
+#' @examples
+#' # Decoupled scenario from the packaged example data
+#' dcp <- subset(sim_decoupling, scenario == "decoupled")
+#' out <- lomad(dcp$y1, dcp$y2, h = 5, s = 125)
+#' sum(out$test$rejected, na.rm = TRUE)   # flagged time points
+#'
 #' @export
 lomad <- function(x1, x2, alpha = 0.05, ...) {
   fit <- lomad_fit(x1, x2, ...)
