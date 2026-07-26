@@ -6,9 +6,8 @@ series.
 
 ## Overview
 
-`lomad` implements the method of Ruiz *et al.* (2026) for detecting and 
-localizing periods of dissimilarity between otherwise correlated moving 
-averages. The method:
+`lomad` implements a method for detecting localized periods of dissimilarity 
+between otherwise correlated moving averages. The method:
 
 1. Smooths each series with a moving average filter to isolate trends.
 2. Computes rolling window correlations on the smoothed series.

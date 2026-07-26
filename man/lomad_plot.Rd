@@ -20,7 +20,18 @@ Invisibly returns \code{NULL}. Called for its side effect (base R plot).
 }
 \description{
 Two-panel base R plot. The upper panel shows the MA-smoothed series
-(\code{ma1}, \code{ma2}) and shared trend, with shading where \code{tst$rejected} is
-\code{TRUE}. The lower panel plots the rolling correlation \code{R_t} with
-theoretical \code{rho_t} as a dashed reference.
+(\code{ma1}, \code{ma2}) and shared trend; the lower panel plots the rolling
+correlation \code{R_t} with theoretical \code{rho_t} as a dashed reference.
+}
+\details{
+The two panels shade \emph{different} index ranges, deliberately. A rejection at
+time \eqn{t} concerns the rolling window
+\eqn{W_t = \{t - s + 1, \ldots, t\}}, so the lower panel shades the rejected
+\eqn{t} themselves (where \eqn{R_t} is plotted), while the upper panel
+shades back to the start of the window, \eqn{t - s + 1}, covering the
+smoothed values that actually entered the correlation. Upper-panel bands are
+therefore wider than lower-panel bands by up to \eqn{s - 1} points and are
+shifted left. The shading stops at the moving averages: the inference is
+about decoupling of the smoothed series, so the further \eqn{h - 1} raw
+observations behind each smoothed value are not included.
 }

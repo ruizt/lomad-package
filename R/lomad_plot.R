@@ -1,9 +1,19 @@
 #' Plot detected decoupling periods from a lomad fit
 #'
 #' Two-panel base R plot. The upper panel shows the MA-smoothed series
-#' (`ma1`, `ma2`) and shared trend, with shading where `tst$rejected` is
-#' `TRUE`. The lower panel plots the rolling correlation `R_t` with
-#' theoretical `rho_t` as a dashed reference.
+#' (`ma1`, `ma2`) and shared trend; the lower panel plots the rolling
+#' correlation `R_t` with theoretical `rho_t` as a dashed reference.
+#'
+#' The two panels shade *different* index ranges, deliberately. A rejection at
+#' time \eqn{t} concerns the rolling window
+#' \eqn{W_t = \{t - s + 1, \ldots, t\}}, so the lower panel shades the rejected
+#' \eqn{t} themselves (where \eqn{R_t} is plotted), while the upper panel
+#' shades back to the start of the window, \eqn{t - s + 1}, covering the
+#' smoothed values that actually entered the correlation. Upper-panel bands are
+#' therefore wider than lower-panel bands by up to \eqn{s - 1} points and are
+#' shifted left. The shading stops at the moving averages: the inference is
+#' about decoupling of the smoothed series, so the further \eqn{h - 1} raw
+#' observations behind each smoothed value are not included.
 #'
 #' @param fit List returned by [lomad_fit()].
 #' @param tst List returned by [lomad_test()].
@@ -19,7 +29,7 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
     stop("lomad_plot() requires a `tst` argument (lomad_test result).")
 
   n     <- fit$inputs$n
-  h     <- fit$inputs$h
+  s     <- fit$inputs$s
   R     <- fit$R
   rho   <- fit$rho
   ma1   <- fit$ma1
@@ -31,12 +41,7 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
 
   t_idx <- if (is.null(dates)) seq_len(n) else dates
 
-  # Back-shift rejected regions for upper panel
-  rej_shifted <- rep(FALSE, n)
-  for (t in which(rejected)) {
-    s <- max(1L, t - (h - 1L))
-    rej_shifted[s:t] <- TRUE
-  }
+  rej_shifted <- .rejected_window_span(rejected, s)
   r_bs   <- rle(rej_shifted)
   ends   <- cumsum(r_bs$lengths)
   starts <- ends - r_bs$lengths + 1L
@@ -94,4 +99,24 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25) {
                    xright = t_idx[ends[k]], ytop = usr[4],
                    col = col, border = NA)
   }
+}
+
+
+# Expand a logical vector of rejections into the rolling windows they concern.
+#
+# A rejection at time t is evidence about W_t = {t - s + 1, ..., t}, so the
+# upper panel shades back to the start of that window rather than marking t
+# alone. The shift is s - 1 (the correlation window), not h - 1: the panel
+# draws the moving averages, and the inferential claim is about decoupling of
+# those moving averages rather than of the raw series, so the further h - 1
+# raw observations behind each smoothed value are not included.
+#
+# rejected : logical vector (NA treated as FALSE)
+# s        : rolling correlation window length
+.rejected_window_span <- function(rejected, s) {
+  rejected[is.na(rejected)] <- FALSE
+  out <- rep(FALSE, length(rejected))
+  s   <- as.integer(s)
+  for (t in which(rejected)) out[max(1L, t - (s - 1L)):t] <- TRUE
+  out
 }

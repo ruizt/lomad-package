@@ -258,3 +258,44 @@ test_that("acov-based noise_override matches equivalent parametric override", {
   expect_equal(fit_acv$rho, fit_par$rho, tolerance = 1e-12)
   expect_equal(fit_acv$V,   fit_par$V,   tolerance = 1e-12)
 })
+
+
+# ---- .rejected_window_span (upper-panel shading) ----
+
+test_that(".rejected_window_span expands a rejection back over its window", {
+  rej <- rep(FALSE, 20); rej[15] <- TRUE
+  sp  <- .rejected_window_span(rej, s = 5)
+  expect_true(all(sp[11:15]))                 # W_15 = {11,...,15}
+  expect_false(any(sp[-(11:15)]))
+})
+
+test_that(".rejected_window_span clips at the series start", {
+  rej <- rep(FALSE, 10); rej[3] <- TRUE
+  sp  <- .rejected_window_span(rej, s = 8)
+  expect_true(all(sp[1:3]))
+  expect_false(any(sp[4:10]))
+})
+
+test_that(".rejected_window_span uses s, not h — regression for the shading bug", {
+  # A single rejection must span exactly s points, independent of any h.
+  rej <- rep(FALSE, 300); rej[250] <- TRUE
+  expect_equal(sum(.rejected_window_span(rej, s = 60)), 60L)
+  expect_equal(sum(.rejected_window_span(rej, s = 125)), 125L)
+})
+
+test_that(".rejected_window_span treats NA as not rejected", {
+  rej <- c(rep(NA, 5), rep(FALSE, 10), TRUE, rep(FALSE, 4))
+  sp  <- .rejected_window_span(rej, s = 3)
+  expect_equal(which(sp), 14:16)
+})
+
+test_that("lomad_plot shades a wider region above than below", {
+  dcp <- subset(sim_decoupling, scenario == "decoupled")
+  fit <- suppressWarnings(suppressMessages(
+    lomad_fit(dcp$y1, dcp$y2, h = 5, s = 125)))
+  tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
+  upper <- .rejected_window_span(tst$rejected, fit$inputs$s)
+  lower <- !is.na(tst$rejected) & tst$rejected
+  expect_gt(sum(upper), sum(lower))
+  expect_true(all(which(lower) %in% which(upper)))   # lower is a subset
+})

@@ -15,7 +15,7 @@ Authors@R: c(
            comment = "independent validation implementation"),
     person("Emily", "Bockmon", role = "ctb",
            comment = "Morro Bay monitoring data"))
-Description: Detects and characterizes periods of decoupling between two
+Description: Detects localized periods of decoupling between two
     time series using correlations between local moving averages.
 License: MIT + file LICENSE
 URL: https://github.com/ruizt/lomad-package
