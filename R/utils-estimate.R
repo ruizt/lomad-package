@@ -17,8 +17,20 @@
   V1 <- mean(d1^2) / 2
   V2 <- mean(d2^2) / 2
 
-  phi <- V2 / V1 - 1
-  phi <- min(max(phi, 0.01), 0.99)
+  phi_raw <- V2 / V1 - 1
+  phi     <- min(max(phi_raw, 0.01), 0.99)
+
+  # A raw estimate at or beyond the clamp boundaries signals that the AR(1)
+  # model does not describe the residual autocovariance (e.g. oscillatory or
+  # strongly persistent noise). Silently clamping would return arbitrarily
+  # wrong noise variances, so surface it.
+  if (phi_raw > 0.99 || phi_raw < 0) {
+    warning(sprintf(paste0(
+      "Variogram AR(1) estimate hit its boundary (raw phi = %.3f, clamped ",
+      "to %.2f); the AR(1) noise model is likely misspecified for this ",
+      "series. Consider noise_method = \"arma\" or supplying ",
+      "noise_override."), phi_raw, phi))
+  }
 
   list(
     ar     = phi,
