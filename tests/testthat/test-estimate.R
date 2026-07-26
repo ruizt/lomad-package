@@ -126,3 +126,19 @@ test_that("estimate_arma_noise: selects correct AR order on AR(2) data", {
 test_that("estimate_arma_noise: errors on length mismatch", {
   expect_error(estimate_arma_noise(1:10, 1:5, 1:10), "same length")
 })
+
+
+# ---- .variogram_ar1 boundary warning ----
+
+test_that(".variogram_ar1 warns when the AR(1) fit hits a clamp boundary", {
+  set.seed(42)
+  # Strongly oscillatory residuals: lag-1 differences are large relative to
+  # lag-2 differences, driving the raw phi estimate negative.
+  resid_osc <- rep(c(1, -1), 60) + rnorm(120, sd = 0.05)
+  expect_warning(.variogram_ar1(resid_osc), "boundary")
+
+  # Well-behaved AR(1) residuals: no warning.
+  set.seed(43)
+  resid_ok <- as.numeric(arima.sim(list(ar = 0.5), n = 400))
+  expect_no_warning(.variogram_ar1(resid_ok))
+})
