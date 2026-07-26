@@ -26,8 +26,8 @@ bibentry(
   author   = c(
     person("Trevor",    "Ruiz",      email = "truiz01@calpoly.edu"),
     person("Alea",      "Seifert"),
-    person("Catherine", "Mispagel"),
     person("Emma",      "Hamilton"),
+    person("Catherine", "Mispagel"),
     person("Andres",    "Rocha")
   ),
   year     = "2026",
