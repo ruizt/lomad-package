@@ -12,7 +12,9 @@ Authors@R: c(
     person("Catherine", "Mispagel", role = "aut",
            comment = "noise simulation"),
     person("Andres", "Rocha", role = "aut",
-           comment = "independent validation implementation"))
+           comment = "independent validation implementation"),
+    person("Emily", "Bockmon", role = "ctb",
+           comment = "Morro Bay monitoring data"))
 Description: Detects and characterizes periods of decoupling between two
     time series using correlations between local moving averages.
 License: MIT + file LICENSE
