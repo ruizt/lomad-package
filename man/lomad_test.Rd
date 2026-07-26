@@ -26,6 +26,16 @@ Given the output of \code{\link[=lomad_fit]{lomad_fit()}}, tests whether the loc
 correlation is significantly below the estimated population correlation
 using the BY-corrected pointwise Z-test.
 }
+\references{
+Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
+Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity
+in nonstationary time series via rolling correlation, with application to
+assessing stability in an estuarine system. Manuscript in preparation.
+
+Benjamini, Y. and Yekutieli, D. (2001). The control of the false discovery
+rate in multiple testing under dependency. \emph{The Annals of Statistics},
+29(4), 1165--1188.
+}
 \seealso{
 \code{\link[=lomad_fit]{lomad_fit()}}, \code{\link[=lomad]{lomad()}}
 }

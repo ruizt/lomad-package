@@ -5,11 +5,10 @@ Authors@R: c(
     person("Trevor", "Ruiz", email = "truiz01@calpoly.edu", role = c("aut", "cre")),
     person("Alea", "Seifert", role = c("aut")),
     person("Catherine", "Mispagel", role = c("aut")),
-    person("Emma", "Hamilton", role = c("aut")))
+    person("Emma", "Hamilton", role = c("aut")),
+    person("Andres", "Rocha", role = c("aut")))
 Description: Detects and characterizes periods of decoupling between two
-    time series using correlations between local moving averages. Provides 
-    parametric bootstrap inference for decoupling rate, mean run length, and 
-    fraction of time in the low-correlation state.
+    time series using correlations between local moving averages.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

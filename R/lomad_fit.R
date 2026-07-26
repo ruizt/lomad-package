@@ -33,6 +33,12 @@
 #'     \item{inputs}{List of input parameters (n, h, s, lag_max).}
 #'   }
 #'
+#' @references
+#' Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
+#' Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity
+#' in nonstationary time series via rolling correlation, with application to
+#' assessing stability in an estuarine system. Manuscript in preparation.
+#'
 #' @seealso [lomad_test()], [lomad()], [lomad_plot()]
 #'
 #' @export
