@@ -28,6 +28,13 @@
 #'
 #' @seealso [lomad_fit()], [lomad()]
 #'
+#' @examples
+#' dcp <- subset(sim_decoupling, scenario == "decoupled")
+#' fit <- lomad_fit(dcp$y1, dcp$y2, h = 5, s = 125)
+#' tst <- lomad_test(fit, alpha = 0.05)
+#' range(which(tst$rejected))            # extent of flagged region
+#' tst$alpha_eff                         # BY-adjusted threshold
+#'
 #' @export
 lomad_test <- function(fit, alpha = 0.05) {
   .lomad_test_clt(fit, alpha = alpha)

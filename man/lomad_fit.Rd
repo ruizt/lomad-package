@@ -9,7 +9,7 @@ lomad_fit(
   x2 = NULL,
   h = NULL,
   s = NULL,
-  noise_method = c("ar1", "arma"),
+  noise_method = c("ar1", "arma", "acf"),
   noise_override = NULL,
   lag_max = 100L
 )
@@ -27,13 +27,17 @@ Auto-selected if \code{NULL}.}
 
 \item{noise_method}{Character. Noise estimation method: \code{"ar1"} (default)
 uses variogram-based AR(1); \code{"arma"} uses BIC-selected AR(p) via
-\code{\link[=estimate_arma_noise]{estimate_arma_noise()}}. Ignored when \code{noise_override} is supplied.}
+\code{\link[=estimate_arma_noise]{estimate_arma_noise()}}; \code{"acf"} uses the nonparametric variogram-based
+autocovariance of \code{\link[=estimate_acf_noise]{estimate_acf_noise()}} — a model-free fallback for
+noise the parametric models cannot represent. Ignored when
+\code{noise_override} is supplied.}
 
-\item{noise_override}{Optional list with elements \code{ar}, \code{ma} (optional),
-\code{sigma2}. If supplied, these noise parameters are used directly instead
-of being estimated from the data. Useful for oracle experiments or when
-noise is estimated externally (e.g. via \code{\link[=estimate_arma_noise]{estimate_arma_noise()}}). May
-also be a list of two such lists (one per series).}
+\item{noise_override}{Optional list giving the noise directly instead of
+estimating it from data: either parametric (elements \code{ar}, \code{ma}
+(optional), \code{sigma2}) or a raw autocovariance sequence (element \code{acov}
+holding \eqn{\gamma(0), \gamma(1), \ldots}; zero beyond its length).
+Useful for oracle experiments or externally estimated noise. May also
+be a list of two such lists (one per series).}
 
 \item{lag_max}{Integer. Lag truncation for autocovariance sums.
 Default 100.}
@@ -55,6 +59,18 @@ Estimates quantities needed for inference on the local correlation between
 two time series. Runs the CLT pipeline: MA trend estimation, noise
 fitting, and rolling computation of \eqn{R_t}, \eqn{\rho_t},
 and \eqn{V_t}.
+}
+\examples{
+# Coupled scenario: null model holds everywhere
+cpl <- subset(sim_decoupling, scenario == "coupled")
+fit <- lomad_fit(cpl$y1, cpl$y2, h = 5, s = 125)
+plot(fit$R, type = "l", ylab = "R_t")
+lines(fit$rho, lwd = 2)               # null benchmark rho_t
+
+# Real data: Morro Bay 2020 block at the paper's settings
+b2 <- subset(morro_bay, block == 2)
+fit_mb <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60, noise_method = "arma")
+
 }
 \references{
 Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,

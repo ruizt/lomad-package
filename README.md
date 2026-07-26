@@ -38,6 +38,7 @@ noise.
 | `estimate_trends()` | Extract trends via moving average |
 | `estimate_ar1_noise()` | Estimate AR(1) noise parameters via variogram |
 | `estimate_arma_noise()` | Estimate ARMA noise parameters via long-AR approximation |
+| `estimate_acf_noise()` | Nonparametric noise autocovariance via the variogram (model-free fallback) |
 | `sim_trends()` | Generate synthetic trend pairs at controlled L² separation |
 | `sim_noise_pair()` | Add calibrated ARMA noise to trend pairs |
 

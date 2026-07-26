@@ -25,23 +25,31 @@
 
   tr <- estimate_trends(y1, y2, h)
 
+  raw_lag_max <- lag_max + h - 1L
+
   if (!is.null(noise_override)) {
-    # Accept a single spec (shared) or a list of two (per-series)
-    if (!is.null(noise_override$ar)) {
+    # Accept a single spec (shared) or a list of two (per-series).
+    # A spec is either parametric (ar, ma, sigma2) or a raw ACVF (acov).
+    is_spec <- function(x)
+      is.list(x) && (!is.null(x$ar) || !is.null(x$acov))
+    if (is_spec(noise_override)) {
       spec1 <- spec2 <- noise_override
     } else {
       spec1 <- noise_override[[1]]
       spec2 <- noise_override[[2]]
     }
-    noise <- list(
-      series1 = list(ar = spec1$ar,
-                     ma = if (!is.null(spec1$ma)) spec1$ma else numeric(0),
-                     sigma2 = spec1$sigma2),
-      series2 = list(ar = spec2$ar,
-                     ma = if (!is.null(spec2$ma)) spec2$ma else numeric(0),
-                     sigma2 = spec2$sigma2)
-    )
+    norm_spec <- function(sp) {
+      if (!is.null(sp$acov)) return(list(acov = as.numeric(sp$acov)))
+      list(ar = sp$ar,
+           ma = if (!is.null(sp$ma)) sp$ma else numeric(0),
+           sigma2 = sp$sigma2)
+    }
+    noise <- list(series1 = norm_spec(spec1), series2 = norm_spec(spec2))
     message("Using noise_override (oracle parameters)")
+  } else if (noise_method == "acf") {
+    noise <- estimate_acf_noise(y1, y2, tr$trend, lag_max = raw_lag_max)
+    message(sprintf("Nonparametric ACVF: sigma2 = %.4f / %.4f",
+                    noise$series1$acov[1L], noise$series2$acov[1L]))
   } else if (noise_method == "arma") {
     noise <- estimate_arma_noise(y1, y2, tr$trend)
     message(sprintf("AR(%d) / AR(%d): sigma2 = %.4f / %.4f",
@@ -53,15 +61,35 @@
                     noise$series1$ar, noise$series2$ar))
   }
 
-  raw_lag_max <- lag_max + h - 1L
-  acov1_raw <- arma_acov(ar = noise$series1$ar, ma = noise$series1$ma,
-                          sigma2 = noise$series1$sigma2, lag_max = raw_lag_max)
-  acov2_raw <- arma_acov(ar = noise$series2$ar, ma = noise$series2$ma,
-                          sigma2 = noise$series2$sigma2, lag_max = raw_lag_max)
+  # Raw noise ACVF to lag raw_lag_max: from the parametric model, or directly
+  # from a nonparametric/override ACVF (zero-padded past its length).
+  raw_acov <- function(sp) {
+    if (!is.null(sp$acov)) {
+      out <- numeric(raw_lag_max + 1L)
+      k   <- min(length(sp$acov), raw_lag_max + 1L)
+      out[seq_len(k)] <- sp$acov[seq_len(k)]
+      return(out)
+    }
+    arma_acov(ar = sp$ar, ma = sp$ma, sigma2 = sp$sigma2,
+              lag_max = raw_lag_max)
+  }
+  acov1_raw <- raw_acov(noise$series1)
+  acov2_raw <- raw_acov(noise$series2)
 
   acov1 <- .ma_filter_acov(acov1_raw, h, lag_max)
   acov2 <- .ma_filter_acov(acov2_raw, h, lag_max)
   sums  <- acov_sums(acov1, acov2)
+
+  # Long-run variances are nonnegative for any valid spectral density;
+  # nonparametric estimates can dip below zero from sampling noise.
+  for (nm in c("L1", "L2")) {
+    if (sums[[nm]] < 0) {
+      warning(sprintf(
+        "Estimated long-run sum %s was negative (%.3g); floored at 0.",
+        nm, sums[[nm]]))
+      sums[[nm]] <- 0
+    }
+  }
 
   sigma1_sq <- acov1[1L]
   sigma2_sq <- acov2[1L]

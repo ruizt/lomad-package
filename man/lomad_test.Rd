@@ -26,6 +26,14 @@ Given the output of \code{\link[=lomad_fit]{lomad_fit()}}, tests whether the loc
 correlation is significantly below the estimated population correlation
 using the BY-corrected pointwise Z-test.
 }
+\examples{
+dcp <- subset(sim_decoupling, scenario == "decoupled")
+fit <- lomad_fit(dcp$y1, dcp$y2, h = 5, s = 125)
+tst <- lomad_test(fit, alpha = 0.05)
+range(which(tst$rejected))            # extent of flagged region
+tst$alpha_eff                         # BY-adjusted threshold
+
+}
 \references{
 Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
 Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity

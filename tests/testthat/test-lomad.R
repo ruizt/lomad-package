@@ -225,3 +225,36 @@ test_that("lomad: null rejection rate < 3*alpha", {
               label = sprintf("Rejection rate %.3f < 3*alpha = %.3f",
                               rejection_rate, 3 * alpha))
 })
+
+
+# ---- noise_method = "acf" and acov-based noise_override ----
+
+test_that("lomad_fit runs end-to-end with noise_method = 'acf'", {
+  set.seed(11)
+  n <- 300
+  trend <- cumsum(rnorm(n, sd = 0.05))
+  y1 <- trend + as.numeric(arima.sim(list(ar = 0.4), n = n, sd = 0.3))
+  y2 <- trend + as.numeric(arima.sim(list(ar = 0.4), n = n, sd = 0.3))
+  fit <- suppressWarnings(suppressMessages(
+    lomad_fit(y1, y2, h = 5, s = 50, noise_method = "acf")))
+  expect_equal(fit$method, "clt")
+  expect_true(all(fit$rho >= 0 & fit$rho <= 1, na.rm = TRUE))
+  expect_true(all(fit$V[fit$valid_idx] > 0))
+  tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
+  expect_length(tst$rejected, n)
+})
+
+test_that("acov-based noise_override matches equivalent parametric override", {
+  set.seed(12)
+  n <- 300
+  y1 <- rnorm(n); y2 <- rnorm(n)
+  h <- 5L; s <- 50L; lag_max <- 100L
+  spec_par <- list(ar = 0.5, sigma2 = 1)
+  acov_vec <- arma_acov(ar = 0.5, sigma2 = 1, lag_max = lag_max + h - 1L)
+  fit_par <- suppressMessages(lomad_fit(y1, y2, h = h, s = s,
+                                        noise_override = spec_par))
+  fit_acv <- suppressMessages(lomad_fit(y1, y2, h = h, s = s,
+                                        noise_override = list(acov = acov_vec)))
+  expect_equal(fit_acv$rho, fit_par$rho, tolerance = 1e-12)
+  expect_equal(fit_acv$V,   fit_par$V,   tolerance = 1e-12)
+})

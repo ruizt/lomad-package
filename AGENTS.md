@@ -25,7 +25,7 @@ Internal helpers live in `utils-{theme}.R`:
 | File | Theme | Contents |
 |------|-------|----------|
 | `utils-sim.R` | Simulation | `.generate_fourier_coef`, `.generate_coef_pair`, `.make_basis_trends`, `.make_w_smooth`, `.make_w_cross`, `.make_w_rate`, `.apply_w`, `.pacf_to_arma_coefs` |
-| `utils-estimate.R` | Estimation | `.variogram_ar1`, `.variogram_ar`, `.yule_walker`, `.fit_arma`, `.select_arma`, `.smooth_noise_var` |
+| `utils-estimate.R` | Estimation | `.variogram_ar1`, `.variogram_ar`, `.variogram_acov`, `.yule_walker`, `.fit_arma`, `.select_arma`, `.smooth_noise_var` |
 | `utils-clt.R` | CLT theory | `.ma_filter_acov`, `.ma_filtered_var`, `.windowed_var_expect`, `compute_tau_sq`, `compute_rho`, `compute_V` |
 | `utils-lomad-fit.R` | Fit implementation | `.lomad_fit_clt` |
 | `utils-lomad-test.R` | Test implementation | `.lomad_test_clt` |
@@ -130,7 +130,7 @@ R/
 ├── utils-sim.R               # .generate_*, .make_w_*, .apply_w, .pacf_to_arma_coefs
 │
 ├── estimate_trends.R         # estimate_trends()
-├── estimate_noise.R          # estimate_ar1_noise(), estimate_arma_noise()
+├── estimate_noise.R          # estimate_ar1_noise(), estimate_arma_noise(), estimate_acf_noise()
 ├── utils-estimate.R          # .select_arma, .variogram_*, .yule_walker, .fit_arma, .smooth_noise_var
 │
 ├── lomad.R                   # lomad()

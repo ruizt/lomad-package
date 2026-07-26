@@ -21,6 +21,14 @@ Benjamini, Y. and Yekutieli, D. (2001). The control of the false discovery
 rate in multiple testing under dependency. \emph{The Annals of Statistics},
 29(4), 1165--1188.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/ruizt/lomad-package}
+  \item Report bugs at \url{https://github.com/ruizt/lomad-package/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Trevor Ruiz \email{truiz01@calpoly.edu}
 
