@@ -55,7 +55,7 @@ remotes::install_github("ruizt/lomad-package")
 
 ### Development version (from source)
 
-Clone the repository and install with `devtools`:
+Clone the repository and install with `pak`:
 
 ```bash
 git clone https://github.com/ruizt/lomad-package.git
@@ -63,8 +63,7 @@ cd lomad-package
 ```
 
 ```r
-devtools::install_deps()
-devtools::install()
+pak::local_install()   # installs dependencies, then the package
 ```
 
 Or build and install from the command line:
