@@ -1,5 +1,5 @@
 # Tests for estimate_trends, estimate_ar1_noise, estimate_arma_noise,
-# and key internals (.variogram_ar1, .yule_walker, .select_arma)
+# and key internals (.variogram_ar1, .yule_walker, .variogram_acov)
 
 # ---- estimate_trends ----
 
@@ -66,41 +66,6 @@ test_that(".yule_walker: exact solution on known Toeplitz system", {
   yw <- .yule_walker(gamma0, gamma_hat, p = 2)
   expect_equal(yw$ar, phi, tolerance = 1e-6)
   expect_equal(yw$sigma2, sigma2, tolerance = 1e-4)
-})
-
-
-# ---- .select_arma ----
-
-test_that(".select_arma: selects AR(1) on AR(1) data", {
-  set.seed(7723)
-  z <- as.numeric(arima.sim(list(ar = 0.6), n = 500))
-  fit <- .select_arma(z, max_pq = 2)
-  expect_equal(fit$order[1], 1, label = "AR order")
-  expect_true(fit$sigma2 > 0)
-})
-
-test_that(".select_arma: handles MA(1) data", {
-  set.seed(4519)
-  z <- as.numeric(arima.sim(list(ma = 0.5), n = 500))
-  fit <- .select_arma(z, max_pq = 2)
-  # Should select a model with q >= 1 or a high-order AR approximation
-  expect_true(fit$order[1] + fit$order[3] >= 1)
-  expect_true(fit$sigma2 > 0)
-})
-
-test_that(".select_arma: handles ARMA(1,1) data", {
-  set.seed(6188)
-  z <- as.numeric(arima.sim(list(ar = 0.5, ma = 0.3), n = 500))
-  fit <- .select_arma(z, max_pq = 2)
-  expect_true(fit$order[1] >= 1 || fit$order[3] >= 1)
-  expect_true(fit$sigma2 > 0)
-})
-
-test_that(".select_arma: white noise fallback on near-constant input", {
-  # Use near-zero noise rather than exactly zero (which crashes arima)
-  set.seed(9911)
-  fit <- .select_arma(rnorm(100, sd = 1e-6), max_pq = 2)
-  expect_true(fit$sigma2 >= 0)
 })
 
 

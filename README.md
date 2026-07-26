@@ -33,7 +33,6 @@ noise.
 
 | Function | Role |
 |---|---|
-| `lomad_test_identity()` | Global test of exact trend identity (H₀: d = 0) |
 | `lomad_plot()` | Visualise fit and test results |
 | `estimate_trends()` | Extract trends via moving average |
 | `estimate_ar1_noise()` | Estimate AR(1) noise parameters via variogram |

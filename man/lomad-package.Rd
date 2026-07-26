@@ -30,15 +30,20 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Trevor Ruiz \email{truiz01@calpoly.edu}
+\strong{Maintainer}: Trevor Ruiz \email{truiz01@calpoly.edu} (\href{https://orcid.org/0009-0001-1452-2542}{ORCID}) (method implementation and inference pipeline)
 
 Authors:
 \itemize{
-  \item Trevor Ruiz \email{truiz01@calpoly.edu}
-  \item Alea Seifert
-  \item Catherine Mispagel
-  \item Emma Hamilton
-  \item Andres Rocha
+  \item Trevor Ruiz \email{truiz01@calpoly.edu} (\href{https://orcid.org/0009-0001-1452-2542}{ORCID}) (method implementation and inference pipeline)
+  \item Alea Seifert (simulation infrastructure)
+  \item Emma Hamilton (trend simulation)
+  \item Catherine Mispagel (noise simulation)
+  \item Andres Rocha (independent validation implementation)
+}
+
+Other contributors:
+\itemize{
+  \item Emily Bockmon (Morro Bay monitoring data) [contributor]
 }
 
 }

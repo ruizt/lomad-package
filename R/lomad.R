@@ -12,12 +12,6 @@
 #' @return A list with elements `$fit` ([lomad_fit()] result) and `$test`
 #'   ([lomad_test()] result).
 #'
-#' @references
-#' Ruiz, T. D., Seifert, A. J., Hamilton, E., Mispagel, C. M., Hunt, O. P.,
-#' Garcia, J., and Bockmon, E. E. (2026). Inference for local trend similarity
-#' in nonstationary time series via rolling correlation, with application to
-#' assessing stability in an estuarine system. Manuscript in preparation.
-#'
 #' @seealso [lomad_fit()], [lomad_test()], [lomad_plot()]
 #'
 #' @examples
