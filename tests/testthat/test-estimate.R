@@ -1,5 +1,5 @@
 # Tests for estimate_trends, estimate_ar1_noise, estimate_arma_noise,
-# and key internals (.variogram_ar1, .yule_walker, .variogram_acov)
+# and key internals (.variogram_ar1, .yule_walker)
 
 # ---- estimate_trends ----
 
@@ -106,64 +106,4 @@ test_that(".variogram_ar1 warns when the AR(1) fit hits a clamp boundary", {
   set.seed(43)
   resid_ok <- as.numeric(arima.sim(list(ar = 0.5), n = 400))
   expect_no_warning(.variogram_ar1(resid_ok))
-})
-
-
-# ---- estimate_acf_noise / .variogram_acov ----
-
-test_that(".variogram_acov recovers AR(1) autocovariances", {
-  set.seed(7)
-  phi <- 0.5; sigma2 <- 1
-  z <- as.numeric(arima.sim(list(ar = phi), n = 5000, sd = sqrt(sigma2)))
-  acov <- .variogram_acov(z, lag_max = 10)
-  gamma0_true <- sigma2 / (1 - phi^2)
-  expect_equal(acov[1], gamma0_true, tolerance = 0.1)
-  # taper shrinks higher lags toward zero, so compare the ratio at lag 1
-  # against the tapered truth
-  n <- length(z); b <- ceiling(10 * log10(n))
-  expect_equal(acov[2] / acov[1], phi * (1 - 1 / (b + 1)), tolerance = 0.1)
-})
-
-test_that(".variogram_acov output length and taper zeros", {
-  set.seed(8)
-  z <- rnorm(200)
-  acov <- .variogram_acov(z, lag_max = 150)
-  expect_length(acov, 151)
-  b <- ceiling(10 * log10(200))
-  expect_true(all(acov[(b + 2):151] == 0))
-})
-
-test_that("estimate_acf_noise returns per-series acov lists", {
-  set.seed(9)
-  n <- 300
-  trend <- sin(seq(0, 2 * pi, length.out = n))
-  y1 <- trend + as.numeric(arima.sim(list(ar = 0.4), n = n))
-  y2 <- trend + rnorm(n)
-  out <- estimate_acf_noise(y1, y2, trend, lag_max = 50)
-  expect_named(out, c("series1", "series2"))
-  expect_length(out$series1$acov, 51)
-  expect_gt(out$series1$acov[1], 0)
-  expect_gt(out$series2$acov[1], 0)
-})
-
-test_that("estimate_acf_noise is robust to the stress-case ARMA noise", {
-  # Oscillatory ARMA(2,1) noise that breaks the parametric variogram fits
-  set.seed(10)
-  n <- 2000
-  z <- as.numeric(arima.sim(list(ar = c(0.602, -0.684), ma = 0.51),
-                            n = n, sd = 0.15))
-  gamma0_true <- (0.15^2) * sum(c(1, ARMAtoMA(ar = c(0.602, -0.684),
-                                              ma = 0.51, lag.max = 200))^2)
-  acov <- .variogram_acov(z, lag_max = 10)
-  expect_equal(acov[1], gamma0_true, tolerance = 0.25)
-})
-
-test_that(".variogram_acov plateau anchor also recovers AR(1) variance", {
-  set.seed(13)
-  z <- as.numeric(arima.sim(list(ar = 0.5), n = 5000))
-  a_var <- .variogram_acov(z, lag_max = 5, anchor = "variance")
-  a_pla <- .variogram_acov(z, lag_max = 5, anchor = "plateau")
-  gamma0_true <- 1 / (1 - 0.5^2)
-  expect_equal(a_var[1], gamma0_true, tolerance = 0.1)
-  expect_equal(a_pla[1], gamma0_true, tolerance = 0.15)
 })

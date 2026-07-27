@@ -227,22 +227,7 @@ test_that("lomad: null rejection rate < 3*alpha", {
 })
 
 
-# ---- noise_method = "acf" and acov-based noise_override ----
-
-test_that("lomad_fit runs end-to-end with noise_method = 'acf'", {
-  set.seed(11)
-  n <- 300
-  trend <- cumsum(rnorm(n, sd = 0.05))
-  y1 <- trend + as.numeric(arima.sim(list(ar = 0.4), n = n, sd = 0.3))
-  y2 <- trend + as.numeric(arima.sim(list(ar = 0.4), n = n, sd = 0.3))
-  fit <- suppressWarnings(suppressMessages(
-    lomad_fit(y1, y2, h = 5, s = 50, noise_method = "acf")))
-  expect_equal(fit$method, "clt")
-  expect_true(all(fit$rho >= 0 & fit$rho <= 1, na.rm = TRUE))
-  expect_true(all(fit$V[fit$valid_idx] > 0))
-  tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
-  expect_length(tst$rejected, n)
-})
+# ---- acov-based noise_override ----
 
 test_that("acov-based noise_override matches equivalent parametric override", {
   set.seed(12)

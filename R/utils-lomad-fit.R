@@ -46,10 +46,6 @@
     }
     noise <- list(series1 = norm_spec(spec1), series2 = norm_spec(spec2))
     message("Using noise_override (oracle parameters)")
-  } else if (noise_method == "acf") {
-    noise <- estimate_acf_noise(y1, y2, tr$trend, lag_max = raw_lag_max)
-    message(sprintf("Nonparametric ACVF: sigma2 = %.4f / %.4f",
-                    noise$series1$acov[1L], noise$series2$acov[1L]))
   } else if (noise_method == "arma") {
     noise <- estimate_arma_noise(y1, y2, tr$trend)
     message(sprintf("AR(%d) / AR(%d): sigma2 = %.4f / %.4f",
