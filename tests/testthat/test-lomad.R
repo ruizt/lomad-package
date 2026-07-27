@@ -319,7 +319,7 @@ test_that("lomad_plot shades a wider region above than below", {
 # ---- lomad_plot dates handling ----
 
 test_that("lomad_plot validates the length of `dates`", {
-  b2  <- subset(morro_bay, block == 2)
+  b2  <- subset(morro_bay, block == max(morro_bay$block))
   fit <- suppressWarnings(suppressMessages(
     lomad_fit(b2$o2, b2$ph, h = 4, s = 60)))
   tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
@@ -327,7 +327,7 @@ test_that("lomad_plot validates the length of `dates`", {
 })
 
 test_that("lomad_plot draws a calendar axis for POSIXct and plain axis otherwise", {
-  b2  <- subset(morro_bay, block == 2)
+  b2  <- subset(morro_bay, block == max(morro_bay$block))
   fit <- suppressWarnings(suppressMessages(
     lomad_fit(b2$o2, b2$ph, h = 4, s = 60)))
   tst <- suppressMessages(lomad_test(fit, alpha = 0.05))

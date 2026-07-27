@@ -67,8 +67,8 @@ plot(fit$R, type = "l", ylab = "R_t")
 lines(fit$rho, lwd = 2)               # null benchmark rho_t
 
 # Real data: Morro Bay 2020 block at the paper's settings
-b2 <- subset(morro_bay, block == 2)
-fit_mb <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60)
+b13 <- subset(morro_bay, block == 13)
+fit_mb <- lomad_fit(b13$o2, b13$ph, h = 4, s = 60)
 
 }
 \references{

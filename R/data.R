@@ -34,36 +34,37 @@
 
 #' Morro Bay dissolved oxygen and pH monitoring data
 #'
-#' Two contiguous blocks of quality-controlled dissolved oxygen and pH data
-#' from the Bay South (BS1) water-quality station in Morro Bay, California,
+#' Two consecutive blocks of quality-controlled dissolved oxygen and pH data
+#' from the Bay Mouth (BM1) water-quality station in Morro Bay, California,
 #' collected through the Central and Northern California Ocean Observing
-#' System (CeNCOOS). Used as the application example in the accompanying
-#' paper.
+#' System (CeNCOOS). The pair is chosen for contrast: the test flags nothing in
+#' the winter block and one sustained episode in the spring block that follows
+#' it directly.
 #'
-#' Raw sensor data (10-15 minute resolution) were quality-controlled with a
-#' QARTOD-based pipeline and split into contiguous blocks; each variable was
-#' standardized (z-score); tidal periodicity was removed with a centered 25 h
-#' rolling mean; and the series were downsampled to 6-hourly resolution.
-#' Values are therefore dimensionless standardized anomalies, not raw
-#' concentrations. The processing scripts live in the `lomad-analysis`
-#' repository (`mb-analysis/`).
+#' Raw hourly sensor data were quality-controlled with a QARTOD-based pipeline
+#' and split into contiguous blocks; each variable was standardized (z-score);
+#' tidal periodicity was removed by zeroing the Fourier components at the five
+#' dominant tidal constituents and their spring-neap sidebands; and the series
+#' were downsampled to 6-hourly resolution. Values are therefore dimensionless
+#' standardized anomalies, not raw concentrations. The processing scripts live
+#' in the `lomad-analysis` repository (`mb-analysis/`).
 #'
-#' @format A data frame with 1391 rows and 4 variables:
+#' @format A data frame with 671 rows and 4 variables:
 #' \describe{
-#'   \item{block}{Integer block identifier (2: Apr-Dec 2020, 971
-#'     observations; 21: Sep-Dec 2023, 420 observations).}
+#'   \item{block}{Integer block identifier (12: Oct 2021-Jan 2022, 370
+#'     observations; 13: Feb-Apr 2022, 301 observations).}
 #'   \item{datetime}{POSIXct timestamp (6-hourly).}
 #'   \item{o2}{Numeric. Standardized, tidally presmoothed dissolved oxygen.}
 #'   \item{ph}{Numeric. Standardized, tidally presmoothed pH.}
 #' }
 #'
 #' @source Central and Northern California Ocean Observing System (CeNCOOS)
-#'   water-quality monitoring, Morro Bay BS1 station.
+#'   water-quality monitoring, Morro Bay BM1 station.
 #'
 #' @seealso [lomad()]
 #'
 #' @examples
-#' b2 <- subset(morro_bay, block == 2)
-#' plot(b2$datetime, b2$o2, type = "l", col = "steelblue")
-#' lines(b2$datetime, b2$ph, col = "tomato")
+#' b13 <- subset(morro_bay, block == 13)
+#' plot(b13$datetime, b13$o2, type = "l", col = "steelblue")
+#' lines(b13$datetime, b13$ph, col = "tomato")
 "morro_bay"
