@@ -115,6 +115,36 @@ test_that("lomad_test: alpha_eff < alpha", {
   expect_true(tst$alpha_eff < 0.05)
 })
 
+test_that("lomad_test: BY step-up, not the fixed worst-case threshold", {
+  sp <- make_null_data()
+  fit <- suppressMessages(lomad_fit(sp$y1, sp$y2))
+  tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
+  idx <- fit$valid_idx
+
+  # adjusted p-values are exactly stats::p.adjust(..., "BY")
+  expect_equal(tst$p_adj[idx],
+               p.adjust(tst$p_values[idx], method = "BY"))
+  # decisions come from the adjusted p-values
+  expect_equal(tst$rejected[idx], unname(tst$p_adj[idx] <= 0.05))
+  # alpha_eff is the realized threshold: it reproduces the rejection set
+  # on the raw p-value scale
+  expect_equal(tst$rejected[idx], unname(tst$p_values[idx] <= tst$alpha_eff))
+})
+
+test_that("lomad_test: step-up recovers a strong dense signal the fixed
+           threshold also flags, and both agree on decisions there", {
+  # decoupled scenario: many genuinely small p-values
+  dcp <- subset(sim_decoupling, scenario == "decoupled")
+  fit <- suppressMessages(lomad_fit(dcp$y1, dcp$y2, h = 5, s = 125))
+  tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
+  expect_gt(sum(tst$rejected, na.rm = TRUE), 0)
+  # step-up never rejects MORE than the old fixed rule (it is a subset)
+  idx <- fit$valid_idx
+  m <- length(idx)
+  old_fixed <- tst$p_values[idx] <= 0.05 / sum(1 / seq_len(m))
+  expect_true(all(!tst$rejected[idx] | old_fixed))
+})
+
 test_that("lomad_test: rejected is logical", {
   sp <- make_null_data()
   fit <- suppressMessages(lomad_fit(sp$y1, sp$y2))
