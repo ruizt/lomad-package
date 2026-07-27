@@ -295,8 +295,11 @@ much harder to see than the same $d$ concentrated in one episode.
   (`alpha_eff`) implied by the Benjamini–Yekutieli correction.
 - For noise with complex or oscillatory autocorrelation, prefer
   `noise_method = "arma"`, and heed warnings from the AR(1) variogram
-  estimator about boundary fits. When even the AR approximation is suspect,
-  `noise_method = "acf"` estimates the noise autocovariance nonparametrically
-  (model-free, conservatively anchored; see `?estimate_acf_noise`).
+  estimator about boundary fits: a clamped estimate means the AR(1) model is
+  straining, and under strong autocorrelation the noise variance can be
+  overstated, which costs power.
 - Oracle-style analyses (known noise parameters) can bypass estimation via
-  the `noise_override` argument of `lomad_fit()`.
+  the `noise_override` argument of `lomad_fit()`, which accepts either
+  parametric coefficients or a raw autocovariance sequence (`acov`). The
+  latter is the route for supplying a noise model the package does not
+  itself fit.

@@ -13,10 +13,9 @@
 #'   Auto-selected if `NULL`.
 #' @param noise_method Character. Noise estimation method: `"ar1"` (default)
 #'   uses variogram-based AR(1); `"arma"` uses BIC-selected AR(p) via
-#'   [estimate_arma_noise()]; `"acf"` uses the nonparametric variogram-based
-#'   autocovariance of [estimate_acf_noise()] — a model-free fallback for
-#'   noise the parametric models cannot represent. Ignored when
-#'   `noise_override` is supplied.
+#'   [estimate_arma_noise()]. Ignored when `noise_override` is supplied.
+#'   To use a noise model of your own, pass its autocovariance sequence
+#'   through `noise_override` rather than adding an estimator here.
 #' @param noise_override Optional list giving the noise directly instead of
 #'   estimating it from data: either parametric (elements `ar`, `ma`
 #'   (optional), `sigma2`) or a raw autocovariance sequence (element `acov`
@@ -61,7 +60,7 @@ lomad_fit <- function(x1             = NULL,
                       x2             = NULL,
                       h              = NULL,
                       s              = NULL,
-                      noise_method   = c("ar1", "arma", "acf"),
+                      noise_method   = c("ar1", "arma"),
                       noise_override = NULL,
                       lag_max        = 100L) {
 

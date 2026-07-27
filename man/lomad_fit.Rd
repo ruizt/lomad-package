@@ -9,7 +9,7 @@ lomad_fit(
   x2 = NULL,
   h = NULL,
   s = NULL,
-  noise_method = c("ar1", "arma", "acf"),
+  noise_method = c("ar1", "arma"),
   noise_override = NULL,
   lag_max = 100L
 )
@@ -27,10 +27,9 @@ Auto-selected if \code{NULL}.}
 
 \item{noise_method}{Character. Noise estimation method: \code{"ar1"} (default)
 uses variogram-based AR(1); \code{"arma"} uses BIC-selected AR(p) via
-\code{\link[=estimate_arma_noise]{estimate_arma_noise()}}; \code{"acf"} uses the nonparametric variogram-based
-autocovariance of \code{\link[=estimate_acf_noise]{estimate_acf_noise()}} — a model-free fallback for
-noise the parametric models cannot represent. Ignored when
-\code{noise_override} is supplied.}
+\code{\link[=estimate_arma_noise]{estimate_arma_noise()}}. Ignored when \code{noise_override} is supplied.
+To use a noise model of your own, pass its autocovariance sequence
+through \code{noise_override} rather than adding an estimator here.}
 
 \item{noise_override}{Optional list giving the noise directly instead of
 estimating it from data: either parametric (elements \code{ar}, \code{ma}
