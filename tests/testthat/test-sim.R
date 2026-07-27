@@ -121,3 +121,39 @@ test_that("sim_noise_pair: seed reproducibility", {
   )
   expect_identical(sp1$y1, sp2$y1)
 })
+
+
+# ---- rate coupling weight: pulse shape ----
+
+test_that("`bump` changes pulse shape without moving the events", {
+  wg <- lomad:::.make_w_rate(600, rate = 0.01, bump = "gamma")
+  wn <- lomad:::.make_w_rate(600, rate = 0.01, bump = "gaussian")
+  expect_length(wn, 600)
+  expect_true(all(wn >= 0 & wn <= 1))
+  # same number of dips, in the same neighbourhoods
+  dips <- function(w) which(diff(sign(diff(w))) > 0) + 1L
+  expect_equal(length(dips(wg)), length(dips(wn)))
+  expect_true(max(abs(sort(dips(wg)) - sort(dips(wn)))) < 20L)
+  expect_false(isTRUE(all.equal(wg, wn)))
+})
+
+test_that("the gaussian pulse leaks less through differencing", {
+  # The point of the option: a corner at onset survives differencing, a smooth
+  # pulse does not. Compare each weight's variogram at short lags.
+  leak <- function(w) {
+    v <- vapply(1:10, function(l)
+      mean((w[(l + 1):length(w)] - w[1:(length(w) - l)])^2) / 2, numeric(1))
+    v[10] / stats::var(w)
+  }
+  expect_lt(leak(lomad:::.make_w_rate(600, bump = "gaussian")),
+            leak(lomad:::.make_w_rate(600, bump = "gamma")))
+})
+
+test_that("sim_trends passes `bump` through and default is unchanged", {
+  a <- sim_trends(600, d = 1, method = "rate", seed = 7)
+  b <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gamma")
+  expect_equal(a$x1, b$x1)
+  g <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gaussian")
+  expect_false(isTRUE(all.equal(a$x1, g$x1)))
+  expect_equal(sqrt(sum((g$x1 - g$x2)^2)), 1, tolerance = 1e-8)
+})

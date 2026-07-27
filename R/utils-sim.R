@@ -89,8 +89,24 @@
   1 - sigma_w * z
 }
 
-# Periodic event-based decoupling: evenly spaced gamma-shaped dips.
-.make_w_rate <- function(n, rate = 0.01) {
+# Periodic event-based decoupling: evenly spaced dips at fixed times.
+#
+# `bump` sets the pulse shape and changes nothing else -- event times, spacing
+# and depth are identical either way.
+#
+#   "gamma"    (default) shape-2 gamma. Rises from zero with non-zero slope, so
+#              w_t has a corner at each event onset.
+#   "gaussian" symmetric normal with the same standard deviation, matched so the
+#              pulses have equal width. Smooth everywhere; no onset corner.
+#
+# The distinction matters downstream. Noise estimation is difference-based and
+# is trend-robust only for trends with bounded derivative (Hall and Van
+# Keilegom, 2003, eqn 2.4); a corner is exactly what differencing fails to
+# cancel, so the gamma pulse leaks into the residual autocovariance far more
+# than the gaussian one does. "gamma" is retained as the default so that
+# previously archived simulation results remain reproducible.
+.make_w_rate <- function(n, rate = 0.01, bump = c("gamma", "gaussian")) {
+  bump     <- match.arg(bump)
   n_events <- round(rate * n)
   if (n_events < 1) stop("`rate * n` must be at least 1; increase `rate` or `n`.")
 
@@ -99,13 +115,19 @@
   dl        <- round(gap * delta)
   strength  <- n_events
 
+  scale_g <- dl * 0.5
+  sd_g    <- scale_g * sqrt(2)   # sd of gamma(shape = 2, scale = scale_g)
+
   events <- round(seq(from = gap / 2, by = gap, length.out = n_events))
   t      <- seq_len(n)
   w      <- rep(1, n)
   for (i in events) {
-    bump <- stats::dgamma(t - i, shape = 2, scale = dl * 0.5)
-    bump <- bump / max(bump)
-    w    <- w - delta * strength * bump
+    b <- switch(bump,
+      gamma    = stats::dgamma(t - i, shape = 2, scale = scale_g),
+      gaussian = stats::dnorm(t - i - sd_g, sd = sd_g)
+    )
+    b <- b / max(b)
+    w <- w - delta * strength * b
   }
   pmax(0, pmin(1, w))
 }
