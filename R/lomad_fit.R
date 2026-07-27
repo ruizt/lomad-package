@@ -11,11 +11,11 @@
 #'   if `NULL`.
 #' @param s Integer or NULL. Rolling correlation window length.
 #'   Auto-selected if `NULL`.
-#' @param noise_method Character. Noise estimation method: `"ar1"` (default)
-#'   uses variogram-based AR(1); `"arma"` uses BIC-selected AR(p) via
-#'   [estimate_arma_noise()]. Ignored when `noise_override` is supplied.
-#'   To use a noise model of your own, pass its autocovariance sequence
-#'   through `noise_override` rather than adding an estimator here.
+#' @param noise_method Character. Noise estimation method. Only `"ar1"` is
+#'   provided: a variogram-based AR(1) fit. Ignored when `noise_override` is
+#'   supplied. To use any other noise model, estimate its autocovariance
+#'   yourself and pass it through `noise_override`; see `vignette("lomad")`
+#'   for a worked example.
 #' @param noise_override Optional list giving the noise directly instead of
 #'   estimating it from data: either parametric (elements `ar`, `ma`
 #'   (optional), `sigma2`) or a raw autocovariance sequence (element `acov`
@@ -53,14 +53,14 @@
 #'
 #' # Real data: Morro Bay 2020 block at the paper's settings
 #' b2 <- subset(morro_bay, block == 2)
-#' fit_mb <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60, noise_method = "arma")
+#' fit_mb <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60)
 #'
 #' @export
 lomad_fit <- function(x1             = NULL,
                       x2             = NULL,
                       h              = NULL,
                       s              = NULL,
-                      noise_method   = c("ar1", "arma"),
+                      noise_method   = c("ar1"),
                       noise_override = NULL,
                       lag_max        = 100L) {
 

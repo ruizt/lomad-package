@@ -174,12 +174,10 @@ range(b2$datetime)
 ```
 
 With 6-hourly data we smooth over one day ($h = 4$) and use 15-day rolling
-windows ($s = 60$), matching the accompanying paper's application. The noise
-in this system has non-trivial autocorrelation structure, so we use the
-BIC-selected AR noise model rather than the AR(1) default:
+windows ($s = 60$), matching the accompanying paper's application:
 
 ```{r mb-fit}
-fit_b2 <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60, noise_method = "arma")
+fit_b2 <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60)
 tst_b2 <- lomad_test(fit_b2, alpha = 0.05)
 sum(tst_b2$rejected, na.rm = TRUE)
 ```
@@ -198,10 +196,59 @@ two trends remain coupled throughout:
 
 ```{r mb-block21}
 b21 <- subset(morro_bay, block == 21)
-fit_b21 <- lomad_fit(b21$o2, b21$ph, h = 4, s = 60, noise_method = "arma")
+fit_b21 <- lomad_fit(b21$o2, b21$ph, h = 4, s = 60)
 tst_b21 <- lomad_test(fit_b21, alpha = 0.05)
 sum(tst_b21$rejected, na.rm = TRUE)
 ```
+
+## Supplying your own noise model
+
+`lomad_fit()` provides one noise estimator, a variogram-based AR(1) fit. The
+inferential results themselves hold for any stationary noise process, so if
+AR(1) does not describe your data you can estimate the autocovariance however
+you prefer and pass it in through `noise_override`, which accepts a raw
+sequence `gamma(0), gamma(1), ...` per series.
+
+To show the mechanics, here is the *same* AR(1) estimate the package computes
+internally, reproduced step by step and supplied through the override. Working
+this out explicitly makes it clear where to substitute a different estimator.
+
+```{r override}
+# 1. the common trend, exactly as lomad_fit() forms it
+h <- 4; s <- 60
+tr <- estimate_trends(b2$o2, b2$ph, h = h)
+keep <- which(!is.na(tr$trend))
+r1 <- b2$o2[keep] - tr$trend[keep]
+r2 <- b2$ph[keep] - tr$trend[keep]
+
+# 2. difference-based AR(1) from two variogram lags:
+#    phi = V(2)/V(1) - 1 and sigma^2 = V(2) are exact identities for AR(1)
+vgram <- function(x, l) mean((x[(l + 1):length(x)] - x[1:(length(x) - l)])^2) / 2
+ar1_from_variogram <- function(r) {
+  V1 <- vgram(r, 1); V2 <- vgram(r, 2)
+  phi <- min(max(V2 / V1 - 1, 0.01), 0.99)
+  list(ar = phi, ma = numeric(0), sigma2 = V2)
+}
+n1 <- ar1_from_variogram(r1)
+n2 <- ar1_from_variogram(r2)
+c(phi1 = n1$ar, phi2 = n2$ar)
+
+# 3. expand to autocovariance sequences and pass them in
+ov <- list(series1 = list(acov = arma_acov(n1$ar, n1$ma, n1$sigma2, lag_max = 100)),
+           series2 = list(acov = arma_acov(n2$ar, n2$ma, n2$sigma2, lag_max = 100)))
+fit_ov <- lomad_fit(b2$o2, b2$ph, h = h, s = s, noise_override = ov)
+
+# matches the built-in estimate
+max(abs(fit_ov$rho - fit_b2$rho), na.rm = TRUE)
+```
+
+Replace step 2 with any estimator of your choosing — a higher-order AR fit, a
+tapered sample autocovariance, or a model fitted elsewhere — and the rest of
+the pipeline is unchanged. Note that estimating noise autocovariance in the
+presence of an unknown trend is a genuinely hard problem: differencing removes
+smooth trends but not entirely, and residual trend structure biases the
+autocovariance upward. See `vignette` references and the accompanying paper's
+discussion.
 
 ## Choosing h and s
 
@@ -293,11 +340,9 @@ much harder to see than the same $d$ concentrated in one episode.
   the null benchmark count as evidence of decoupling.
 - `lomad_test()` reports the effective significance threshold
   (`alpha_eff`) implied by the Benjamini–Yekutieli correction.
-- For noise with complex or oscillatory autocorrelation, prefer
-  `noise_method = "arma"`, and heed warnings from the AR(1) variogram
-  estimator about boundary fits: a clamped estimate means the AR(1) model is
-  straining, and under strong autocorrelation the noise variance can be
-  overstated, which costs power.
+- Heed warnings from the AR(1) variogram estimator about boundary fits: a
+  clamped estimate means the AR(1) model is straining, and under strong
+  autocorrelation the noise variance can be overstated, which costs power.
 - Oracle-style analyses (known noise parameters) can bypass estimation via
   the `noise_override` argument of `lomad_fit()`, which accepts either
   parametric coefficients or a raw autocovariance sequence (`acov`). The

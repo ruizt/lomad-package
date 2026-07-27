@@ -32,7 +32,6 @@ making the estimates robust to trend differences when \eqn{d > 0}.
 \details{
 This is a special case of the difference-based approach of
 Hall and Van Keilegom (2003) for the AR(1) model. For general AR(p)
-noise, see \code{\link[=estimate_arma_noise]{estimate_arma_noise()}}.
 
 Residuals are computed as \eqn{y_k - \hat s_t}, where \eqn{\hat s_t} is
 the shared trend estimate from \code{\link[=estimate_trends]{estimate_trends()}}.  The variogram
@@ -46,7 +45,4 @@ For AR(1) with coefficient \eqn{\phi} and innovation variance
 Hall, P. and Van Keilegom, I. (2003). Using difference-based methods for
 inference in nonparametric regression with time series errors. \emph{Journal
 of the Royal Statistical Society Series B}, 65(2), 443--456.
-}
-\seealso{
-\code{\link[=estimate_arma_noise]{estimate_arma_noise()}} for general AR(p) noise estimation.
 }
