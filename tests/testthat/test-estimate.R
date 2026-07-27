@@ -1,4 +1,4 @@
-# Tests for estimate_trends, estimate_ar1_noise, estimate_arma_noise,
+# Tests for estimate_trends, estimate_ar1_noise,
 # and key internals (.variogram_ar1, .yule_walker)
 
 # ---- estimate_trends ----
@@ -66,30 +66,6 @@ test_that(".yule_walker: exact solution on known Toeplitz system", {
   yw <- .yule_walker(gamma0, gamma_hat, p = 2)
   expect_equal(yw$ar, phi, tolerance = 1e-6)
   expect_equal(yw$sigma2, sigma2, tolerance = 1e-4)
-})
-
-
-# ---- estimate_arma_noise ----
-
-test_that("estimate_arma_noise: selects correct AR order on AR(2) data", {
-  set.seed(8812)
-  n <- 2000
-  phi <- c(0.5, -0.2)
-  trend <- cumsum(rnorm(n, sd = 0.05))
-  z1 <- as.numeric(arima.sim(list(ar = phi), n = n))
-  z2 <- as.numeric(arima.sim(list(ar = phi), n = n))
-  y1 <- trend + z1
-  y2 <- trend + z2
-
-  tr <- estimate_trends(y1, y2, h = 10)
-  noise <- estimate_arma_noise(y1, y2, tr$trend, p_max = 4)
-
-  expect_true(noise$series1$order[1] >= 2,
-              label = "AR order should be >= 2")
-})
-
-test_that("estimate_arma_noise: errors on length mismatch", {
-  expect_error(estimate_arma_noise(1:10, 1:5, 1:10), "same length")
 })
 
 

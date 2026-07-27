@@ -46,11 +46,6 @@
     }
     noise <- list(series1 = norm_spec(spec1), series2 = norm_spec(spec2))
     message("Using noise_override (oracle parameters)")
-  } else if (noise_method == "arma") {
-    noise <- estimate_arma_noise(y1, y2, tr$trend)
-    message(sprintf("AR(%d) / AR(%d): sigma2 = %.4f / %.4f",
-                    length(noise$series1$ar), length(noise$series2$ar),
-                    noise$series1$sigma2, noise$series2$sigma2))
   } else {
     noise <- estimate_ar1_noise(y1, y2, tr$trend)
     message(sprintf("AR(1): phi = %.3f / %.3f",
