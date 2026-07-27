@@ -16,15 +16,20 @@ A named list with elements:
 \describe{
 \item{Z}{Numeric vector of Z-statistics (NA outside valid indices).}
 \item{p_values}{Raw p-values.}
-\item{p_adj}{BY-adjusted p-values.}
-\item{rejected}{Logical vector of rejections.}
-\item{alpha_eff}{Effective significance level after BY correction.}
+\item{p_adj}{BY-adjusted p-values (\code{stats::p.adjust}, method \code{"BY"}).}
+\item{rejected}{Logical vector, \code{p_adj <= alpha}.}
+\item{alpha_eff}{Realized rejection threshold on the raw p-value
+scale: the step-up rejection set equals
+\code{p_values <= alpha_eff} exactly. Data-dependent; when nothing is
+rejected it reports the bar a single p-value needed to clear.}
 }
 }
 \description{
 Given the output of \code{\link[=lomad_fit]{lomad_fit()}}, tests whether the local sample
 correlation is significantly below the estimated population correlation
-using the BY-corrected pointwise Z-test.
+using pointwise one-sided Z-tests with the Benjamini--Yekutieli step-up
+correction, which controls the false discovery rate at \code{alpha} under
+arbitrary dependence among the tests.
 }
 \examples{
 dcp <- subset(sim_decoupling, scenario == "decoupled")
