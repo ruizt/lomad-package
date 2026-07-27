@@ -42,7 +42,14 @@
 #'       time in coupled state, default 0.8).}
 #'     \item{`"cross"`}{`bw` (bandwidth, default 50), `coupling` (fraction of
 #'       time near coupled state, default 0.8).}
-#'     \item{`"rate"`}{`rate` (decoupling events per unit time, default 0.01).}
+#'     \item{`"rate"`}{`rate` (decoupling events per unit time, default 0.01)
+#'       and `bump`, the pulse shape: `"gamma"` (default) or `"gaussian"`.
+#'       Both place identical events at identical times and differ only in
+#'       smoothness at onset -- the gamma pulse has a corner there, the
+#'       gaussian does not. Because difference-based noise estimation is
+#'       trend-robust only for trends with bounded derivative (Hall and
+#'       Van Keilegom, 2003), the two behave very differently under strong
+#'       noise autocorrelation.}
 #'   }
 #'
 #' @return A list with:
@@ -63,6 +70,11 @@
 #' # Custom coupling weight vector
 #' w_custom <- rep(c(0, 1), each = 250)
 #' tr <- sim_trends(500, d = 2, w = w_custom)
+#'
+#' @references
+#' Hall, P. and Van Keilegom, I. (2003). Using difference-based methods for
+#' inference in nonparametric regression with time series errors. \emph{Journal
+#' of the Royal Statistical Society Series B}, 65(2), 443--456.
 #'
 #' @export
 sim_trends <- function(n      = 500,
