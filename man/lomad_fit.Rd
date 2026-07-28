@@ -68,9 +68,7 @@ fit <- lomad_fit(sim$y1, sim$y2, h = 5, s = 125)
 plot(fit$R, type = "l", ylab = "R_t")
 lines(fit$rho, lwd = 2)               # null benchmark rho_t
 
-# Real data at the paper's settings. This one warns: the pH residuals are
-# nearly white, so phi_hat clamps at its lower bound. That is benign here --
-# see the "Checking the noise estimate" section of vignette("lomad").
+# Real data at the paper's settings
 fit_mb <- lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60)
 
 }

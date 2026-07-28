@@ -172,7 +172,7 @@ localization is at window, not point, resolution.
 The packaged dataset `morro_bay` contains one contiguous block of
 quality-controlled dissolved oxygen and pH monitoring data from the Bay Mouth
 station of the Morro Bay estuary (CeNCOOS sensors), covering February to
-April 2022, standardized, tidally presmoothed, and downsampled to 6-hourly
+May 2023, standardized, tidally presmoothed, and downsampled to 6-hourly
 resolution (see `?morro_bay`).
 Dissolved oxygen and pH are biogeochemically linked in an estuary, so
 persistent local decoupling of their trends is a potential indicator of a
@@ -195,19 +195,12 @@ sum(tst_mb$rejected, na.rm = TRUE)
 lomad_plot(fit_mb, tst_mb, dates = morro_bay$datetime)
 ```
 
-The test flags one sustained episode, in April, in which the local correlation
-between oxygen and pH trends falls significantly below its shared-trend
-benchmark. Note that the flagged stretch is *not* the deepest dip in $R_t$ —
-that occurs earlier in the block, where $R_t$ falls to about 0.22. Within the
-flagged window $R_t$ only reaches 0.65, but $\rho_t$ there is above 0.8, so it
-is the gap between the two, scaled by $\sqrt{V_t/s}$, that matters rather than
-the depth of the dip itself.
-
-Fitting this block raises a boundary warning: the pH residuals are close to
-white, so $\hat\phi$ for that series clamps at its lower bound of 0.01. That
-is benign — the diagnostics in the next section confirm the fit is admissible —
-but the warning is worth reading rather than dismissing, because the same
-mechanism at the *upper* bound signals a genuinely unusable fit.
+The test flags one sustained episode, in late April, in which the local
+correlation between oxygen and pH trends falls well below its shared-trend
+benchmark: $R_t$ reaches $-0.10$ inside the flagged run while $\rho_t$ there
+sits between 0.59 and 0.77. What the test responds to is that gap, scaled by
+$\sqrt{V_t/s}$ — not the level of $R_t$ on its own. Elsewhere in the block
+$R_t$ dips without being flagged, because $\rho_t$ dips with it.
 
 ## Checking the noise estimate
 
