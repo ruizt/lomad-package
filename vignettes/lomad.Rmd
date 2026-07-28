@@ -171,8 +171,8 @@ localization is at window, not point, resolution.
 
 The packaged dataset `morro_bay` contains one contiguous block of
 quality-controlled dissolved oxygen and pH monitoring data from the Bay Mouth
-station of the Morro Bay estuary (CeNCOOS sensors), covering February to
-May 2023, standardized, tidally presmoothed, and downsampled to 6-hourly
+station of the Morro Bay estuary (CeNCOOS sensors), covering August to
+October 2022, standardized, tidally presmoothed, and downsampled to 6-hourly
 resolution (see `?morro_bay`).
 Dissolved oxygen and pH are biogeochemically linked in an estuary, so
 persistent local decoupling of their trends is a potential indicator of a
@@ -195,10 +195,10 @@ sum(tst_mb$rejected, na.rm = TRUE)
 lomad_plot(fit_mb, tst_mb, dates = morro_bay$datetime)
 ```
 
-The test flags one sustained episode, in late April, in which the local
+The test flags one sustained episode, in mid-September, in which the local
 correlation between oxygen and pH trends falls well below its shared-trend
-benchmark: $R_t$ reaches $-0.10$ inside the flagged run while $\rho_t$ there
-sits between 0.59 and 0.77. What the test responds to is that gap, scaled by
+benchmark: $R_t$ reaches $0.03$ inside the flagged run while $\rho_t$ there
+sits between 0.73 and 0.85. What the test responds to is that gap, scaled by
 $\sqrt{V_t/s}$ — not the level of $R_t$ on its own. Elsewhere in the block
 $R_t$ dips without being flagged, because $\rho_t$ dips with it.
 
