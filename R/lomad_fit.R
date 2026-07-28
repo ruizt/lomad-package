@@ -45,15 +45,16 @@
 #' @seealso [lomad_test()], [lomad()], [lomad_plot()]
 #'
 #' @examples
-#' # Coupled scenario: null model holds everywhere
-#' cpl <- subset(sim_decoupling, scenario == "coupled")
-#' fit <- lomad_fit(cpl$y1, cpl$y2, h = 5, s = 125)
+#' # Coupled scenario: the null model holds everywhere, so R_t tracks rho_t
+#' tr  <- sim_trends(500, d = 0, method = "smooth", bw = 50, seed = 101)
+#' sim <- suppressMessages(
+#'   sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 102))
+#' fit <- lomad_fit(sim$y1, sim$y2, h = 5, s = 125)
 #' plot(fit$R, type = "l", ylab = "R_t")
 #' lines(fit$rho, lwd = 2)               # null benchmark rho_t
 #'
-#' # Real data: Morro Bay 2020 block at the paper's settings
-#' b2 <- subset(morro_bay, block == 2)
-#' fit_mb <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60)
+#' # Real data at the paper's settings
+#' fit_mb <- lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60)
 #'
 #' @export
 lomad_fit <- function(x1             = NULL,

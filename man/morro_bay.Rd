@@ -5,10 +5,8 @@
 \alias{morro_bay}
 \title{Morro Bay dissolved oxygen and pH monitoring data}
 \format{
-A data frame with 1391 rows and 4 variables:
+A data frame with 403 rows and 3 variables:
 \describe{
-\item{block}{Integer block identifier (2: Apr-Dec 2020, 971
-observations; 21: Sep-Dec 2023, 420 observations).}
 \item{datetime}{POSIXct timestamp (6-hourly).}
 \item{o2}{Numeric. Standardized, tidally presmoothed dissolved oxygen.}
 \item{ph}{Numeric. Standardized, tidally presmoothed pH.}
@@ -16,31 +14,30 @@ observations; 21: Sep-Dec 2023, 420 observations).}
 }
 \source{
 Central and Northern California Ocean Observing System (CeNCOOS)
-water-quality monitoring, Morro Bay BS1 station.
+water-quality monitoring, Morro Bay BM1 station.
 }
 \usage{
 morro_bay
 }
 \description{
-Two contiguous blocks of quality-controlled dissolved oxygen and pH data
-from the Bay South (BS1) water-quality station in Morro Bay, California,
+A contiguous block of quality-controlled dissolved oxygen and pH data from
+the Bay Mouth (BM1) water-quality station in Morro Bay, California,
 collected through the Central and Northern California Ocean Observing
-System (CeNCOOS). Used as the application example in the accompanying
-paper.
+System (CeNCOOS), covering February to May 2023. The test flags one
+sustained decoupling episode in this block, in late April.
 }
 \details{
-Raw sensor data (10-15 minute resolution) were quality-controlled with a
-QARTOD-based pipeline and split into contiguous blocks; each variable was
-standardized (z-score); tidal periodicity was removed with a centered 25 h
-rolling mean; and the series were downsampled to 6-hourly resolution.
-Values are therefore dimensionless standardized anomalies, not raw
-concentrations. The processing scripts live in the \code{lomad-analysis}
-repository (\verb{mb-analysis/}).
+Raw hourly sensor data were quality-controlled with a QARTOD-based pipeline
+and split into contiguous blocks; each variable was standardized (z-score);
+tidal periodicity was removed by zeroing the Fourier components at the five
+dominant tidal constituents and their spring-neap sidebands; and the series
+were downsampled to 6-hourly resolution. Values are therefore dimensionless
+standardized anomalies, not raw concentrations. The processing scripts live
+in the \code{lomad-analysis} repository (\verb{mb-analysis/}).
 }
 \examples{
-b2 <- subset(morro_bay, block == 2)
-plot(b2$datetime, b2$o2, type = "l", col = "steelblue")
-lines(b2$datetime, b2$ph, col = "tomato")
+plot(morro_bay$datetime, morro_bay$o2, type = "l", col = "steelblue")
+lines(morro_bay$datetime, morro_bay$ph, col = "tomato")
 }
 \seealso{
 \code{\link[=lomad]{lomad()}}

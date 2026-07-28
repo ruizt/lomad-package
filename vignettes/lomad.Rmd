@@ -41,16 +41,25 @@ truth is known, and on real estuarine monitoring data.
 
 ## Simulated example
 
-The packaged dataset `sim_decoupling` contains two scenarios built from the
-same base trends and AR(1) noise process. In the `"coupled"` scenario the two
-trends are identical ($d = 0$), so the null hypothesis of local similarity
-holds everywhere. In the `"decoupled"` scenario the trends separate in
-localized episodes ($d = 1.5$).
+We build two scenarios from the same base trends and noise process, differing
+only in the $L^2$ trend separation $d$. In the coupled scenario the two trends
+are identical ($d = 0$), so the null hypothesis of local similarity holds
+everywhere. In the decoupled scenario the trends separate in localized episodes
+($d = 1.5$). Generating them here rather than shipping them keeps the data
+transparent: every parameter of the simulation is visible.
 
 ```{r data}
-str(sim_decoupling)
-cpl <- subset(sim_decoupling, scenario == "coupled")
-dcp <- subset(sim_decoupling, scenario == "decoupled")
+make_scenario <- function(d, seed = 101) {
+  tr  <- sim_trends(n = 500, d = d, method = "smooth", bw = 50, seed = seed)
+  sim <- sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5,
+                        seed = seed + 1)
+  data.frame(t = seq_len(500), y1 = sim$y1, y2 = sim$y2,
+             nu1 = tr$x1, nu2 = tr$x2)
+}
+
+cpl <- make_scenario(d = 0)      # coupled: null holds everywhere
+dcp <- make_scenario(d = 1.5)    # decoupled: localized separation
+str(dcp)
 ```
 
 The observed series are dominated by noise; the trends (which we know here,
@@ -160,46 +169,106 @@ localization is at window, not point, resolution.
 
 ## Real-data example: Morro Bay
 
-The packaged dataset `morro_bay` contains two contiguous blocks of
-quality-controlled dissolved oxygen and pH monitoring data from the Bay South
-station of the Morro Bay estuary (CeNCOOS sensors), standardized, tidally
-presmoothed, and downsampled to 6-hourly resolution (see `?morro_bay`).
+The packaged dataset `morro_bay` contains one contiguous block of
+quality-controlled dissolved oxygen and pH monitoring data from the Bay Mouth
+station of the Morro Bay estuary (CeNCOOS sensors), covering February to
+May 2023, standardized, tidally presmoothed, and downsampled to 6-hourly
+resolution (see `?morro_bay`).
 Dissolved oxygen and pH are biogeochemically linked in an estuary, so
 persistent local decoupling of their trends is a potential indicator of a
 disturbance to the system.
 
 ```{r mb-data}
-b2 <- subset(morro_bay, block == 2)     # Apr-Dec 2020
-range(b2$datetime)
+range(morro_bay$datetime)
 ```
 
 With 6-hourly data we smooth over one day ($h = 4$) and use 15-day rolling
 windows ($s = 60$), matching the accompanying paper's application:
 
 ```{r mb-fit}
-fit_b2 <- lomad_fit(b2$o2, b2$ph, h = 4, s = 60)
-tst_b2 <- lomad_test(fit_b2, alpha = 0.05)
-sum(tst_b2$rejected, na.rm = TRUE)
+fit_mb <- lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60)
+tst_mb <- lomad_test(fit_mb, alpha = 0.05)
+sum(tst_mb$rejected, na.rm = TRUE)
 ```
 
 ```{r mb-plot, fig.height = 6}
-lomad_plot(fit_b2, tst_b2, dates = b2$datetime)
+lomad_plot(fit_mb, tst_mb, dates = morro_bay$datetime)
 ```
 
-The test flags one sustained episode in which the local correlation between
-oxygen and pH trends falls significantly below its shared-trend benchmark.
-Note that the flagged stretch is *not* the deepest dip in $R_t$: the tolerance
-band widens sharply there because $\rho_t$ falls and $V_t$ grows, so the
-deeper dip is the less surprising one.
-For comparison, the shorter autumn 2023 block shows no flagged points — the
-two trends remain coupled throughout:
+The test flags one sustained episode, in late April, in which the local
+correlation between oxygen and pH trends falls well below its shared-trend
+benchmark: $R_t$ reaches $-0.10$ inside the flagged run while $\rho_t$ there
+sits between 0.59 and 0.77. What the test responds to is that gap, scaled by
+$\sqrt{V_t/s}$ — not the level of $R_t$ on its own. Elsewhere in the block
+$R_t$ dips without being flagged, because $\rho_t$ dips with it.
 
-```{r mb-block21}
-b21 <- subset(morro_bay, block == 21)
-fit_b21 <- lomad_fit(b21$o2, b21$ph, h = 4, s = 60)
-tst_b21 <- lomad_test(fit_b21, alpha = 0.05)
-sum(tst_b21$rejected, na.rm = TRUE)
+## Checking the noise estimate
+
+`lomad_fit()` estimates the noise autocovariance from residuals taken against
+the *common* trend, so those residuals carry not only noise but half the gap
+between the two trends, $g_t = (\nu_{1t} - \nu_{2t})/2$. The estimator is
+difference-based, which suppresses that leakage but never removes it: the
+lag-$l$ variogram is additive,
+$V_r(l) = V_g(l) + V_Z(l)$, and $V_g(l) \geq 0$ always.
+
+Two quick checks are worth running on real data.
+
+**Is the noise model admissible?** The AR(1) fit uses two variogram lags, and
+the identity $V(2)/V(1) = 1 + \phi$ caps that ratio at 2 for any stationary
+AR(1). Equivalently $D_2 = 2V(1) - V(2)$ must be positive. When it is not, the
+fitted $\hat\phi$ exceeds 1 and is clamped — a sign the residuals are outside
+the model, usually because the series has been oversmoothed upstream.
+
+**Is trend leakage distorting the estimate?** $g$ is estimable without the
+common trend: smooth each series separately and halve the difference. Its
+lag-1 variogram overshoots the leak by the variogram of the smoothed noise,
+which the fitted parameters give you, so the difference estimates the leak.
+Scaling it by $D_2$ gives a dimensionless statistic that is small when
+difference-based estimation is doing its job.
+
+```{r diagnostic}
+vgram <- function(x, l) mean((x[(l + 1):length(x)] - x[1:(length(x) - l)])^2) / 2
+ma    <- function(x, h) as.numeric(stats::filter(x, rep(1 / h, h), sides = 1))
+
+# autocovariance of an h-step moving average of a process with acvf `g`
+acov_smoothed <- function(g, h, kmax) {
+  gl <- function(k) { k <- abs(k); if (k + 1 <= length(g)) g[k + 1] else 0 }
+  vapply(0:kmax, function(k)
+    sum(outer(0:(h - 1), 0:(h - 1), Vectorize(function(i, j) gl(k + i - j)))) / h^2,
+    numeric(1))
+}
+
+lomad_diagnose <- function(y1, y2, fit, h) {
+  keep <- which(!is.na(fit$trend))
+  r1   <- y1[keep] - fit$trend[keep]
+  ghat <- ((ma(y1, h) - ma(y2, h)) / 2)[keep]
+
+  D2 <- 2 * vgram(r1, 1) - vgram(r1, 2)          # must be > 0
+
+  # variogram of (Z1 - Z2)^(h) / 2 implied by the fitted noise parameters
+  a1 <- arma_acov(fit$noise$series1$ar, fit$noise$series1$ma,
+                  fit$noise$series1$sigma2, lag_max = 200)
+  a2 <- arma_acov(fit$noise$series2$ar, fit$noise$series2$ma,
+                  fit$noise$series2$sigma2, lag_max = 200)
+  s1 <- acov_smoothed(a1, h, 1); s2 <- acov_smoothed(a2, h, 1)
+  V_sn <- (s1[1] + s2[1]) / 4 - (s1[2] + s2[2]) / 4
+
+  c(D2 = D2, S = 2 * (vgram(ghat, 1) - V_sn) / D2)
+}
+
+lomad_diagnose(morro_bay$o2, morro_bay$ph, fit_mb, h = 4)
 ```
+
+`D2` is positive, so the AR(1) fit is admissible. `S` is near zero — a genuine leak can only push it positive, since $V_g$ is a mean of
+squares — so trend leakage is not distorting the noise estimate here. As a
+rough guide, `S` below about 0.05 indicates negligible leakage; approaching 1
+means $1 - \hat\phi$ is being driven toward zero by the trend rather than by
+the data, and the noise variance is badly inflated.
+
+Both checks assume the noise model is *correctly specified*. Neither detects a
+wrong model: the AR(1) fit reproduces $V(1)$ and $V(2)$ exactly by
+construction, so misspecification that shows up only in the tail of the
+autocovariance is invisible to them.
 
 ## Supplying your own noise model
 
@@ -216,10 +285,10 @@ this out explicitly makes it clear where to substitute a different estimator.
 ```{r override}
 # 1. the common trend, exactly as lomad_fit() forms it
 h <- 4; s <- 60
-tr <- estimate_trends(b2$o2, b2$ph, h = h)
+tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = h)
 keep <- which(!is.na(tr$trend))
-r1 <- b2$o2[keep] - tr$trend[keep]
-r2 <- b2$ph[keep] - tr$trend[keep]
+r1 <- morro_bay$o2[keep] - tr$trend[keep]
+r2 <- morro_bay$ph[keep] - tr$trend[keep]
 
 # 2. difference-based AR(1) from two variogram lags:
 #    phi = V(2)/V(1) - 1 and sigma^2 = V(2) are exact identities for AR(1)
@@ -236,10 +305,10 @@ c(phi1 = n1$ar, phi2 = n2$ar)
 # 3. expand to autocovariance sequences and pass them in
 ov <- list(series1 = list(acov = arma_acov(n1$ar, n1$ma, n1$sigma2, lag_max = 100)),
            series2 = list(acov = arma_acov(n2$ar, n2$ma, n2$sigma2, lag_max = 100)))
-fit_ov <- lomad_fit(b2$o2, b2$ph, h = h, s = s, noise_override = ov)
+fit_ov <- lomad_fit(morro_bay$o2, morro_bay$ph, h = h, s = s, noise_override = ov)
 
 # matches the built-in estimate
-max(abs(fit_ov$rho - fit_b2$rho), na.rm = TRUE)
+max(abs(fit_ov$rho - fit_mb$rho), na.rm = TRUE)
 ```
 
 Replace step 2 with any estimator of your choosing — a higher-order AR fit, a
