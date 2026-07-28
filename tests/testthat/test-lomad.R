@@ -12,6 +12,17 @@ make_null_data <- function(seed = 6247) {
   )
 }
 
+# Decoupled data: structured separation via a smooth coupling weight. This is
+# the scenario the vignette builds; it is generated here rather than shipped,
+# so the package carries no simulated dataset.
+make_decoupled_data <- function(seed = 101L) {
+  tr <- sim_trends(n = 500, d = 1.5, method = "smooth", bw = 50, seed = seed)
+  suppressMessages(
+    sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5,
+                   seed = seed + 1L)
+  )
+}
+
 # ---- lomad_fit (CLT) ----
 
 test_that("lomad_fit: returns expected structure for CLT method", {
@@ -134,7 +145,7 @@ test_that("lomad_test: BY step-up, not the fixed worst-case threshold", {
 test_that("lomad_test: step-up recovers a strong dense signal the fixed
            threshold also flags, and both agree on decisions there", {
   # decoupled scenario: many genuinely small p-values
-  dcp <- subset(sim_decoupling, scenario == "decoupled")
+  dcp <- make_decoupled_data()
   fit <- suppressMessages(lomad_fit(dcp$y1, dcp$y2, h = 5, s = 125))
   tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
   expect_gt(sum(tst$rejected, na.rm = TRUE), 0)
@@ -305,7 +316,7 @@ test_that(".rejected_window_span treats NA as not rejected", {
 })
 
 test_that("lomad_plot shades a wider region above than below", {
-  dcp <- subset(sim_decoupling, scenario == "decoupled")
+  dcp <- make_decoupled_data()
   fit <- suppressWarnings(suppressMessages(
     lomad_fit(dcp$y1, dcp$y2, h = 5, s = 125)))
   tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
@@ -319,7 +330,7 @@ test_that("lomad_plot shades a wider region above than below", {
 # ---- lomad_plot dates handling ----
 
 test_that("lomad_plot validates the length of `dates`", {
-  b2  <- subset(morro_bay, block == max(morro_bay$block))
+  b2  <- morro_bay
   fit <- suppressWarnings(suppressMessages(
     lomad_fit(b2$o2, b2$ph, h = 4, s = 60)))
   tst <- suppressMessages(lomad_test(fit, alpha = 0.05))
@@ -327,7 +338,7 @@ test_that("lomad_plot validates the length of `dates`", {
 })
 
 test_that("lomad_plot draws a calendar axis for POSIXct and plain axis otherwise", {
-  b2  <- subset(morro_bay, block == max(morro_bay$block))
+  b2  <- morro_bay
   fit <- suppressWarnings(suppressMessages(
     lomad_fit(b2$o2, b2$ph, h = 4, s = 60)))
   tst <- suppressMessages(lomad_test(fit, alpha = 0.05))

@@ -5,10 +5,8 @@
 \alias{morro_bay}
 \title{Morro Bay dissolved oxygen and pH monitoring data}
 \format{
-A data frame with 671 rows and 4 variables:
+A data frame with 301 rows and 3 variables:
 \describe{
-\item{block}{Integer block identifier (12: Oct 2021-Jan 2022, 370
-observations; 13: Feb-Apr 2022, 301 observations).}
 \item{datetime}{POSIXct timestamp (6-hourly).}
 \item{o2}{Numeric. Standardized, tidally presmoothed dissolved oxygen.}
 \item{ph}{Numeric. Standardized, tidally presmoothed pH.}
@@ -22,12 +20,11 @@ water-quality monitoring, Morro Bay BM1 station.
 morro_bay
 }
 \description{
-Two consecutive blocks of quality-controlled dissolved oxygen and pH data
-from the Bay Mouth (BM1) water-quality station in Morro Bay, California,
+A contiguous block of quality-controlled dissolved oxygen and pH data from
+the Bay Mouth (BM1) water-quality station in Morro Bay, California,
 collected through the Central and Northern California Ocean Observing
-System (CeNCOOS). The pair is chosen for contrast: the test flags nothing in
-the winter block and one sustained episode in the spring block that follows
-it directly.
+System (CeNCOOS), covering February to April 2022. The test flags one
+sustained decoupling episode in this block.
 }
 \details{
 Raw hourly sensor data were quality-controlled with a QARTOD-based pipeline
@@ -39,9 +36,8 @@ standardized anomalies, not raw concentrations. The processing scripts live
 in the \code{lomad-analysis} repository (\verb{mb-analysis/}).
 }
 \examples{
-b13 <- subset(morro_bay, block == 13)
-plot(b13$datetime, b13$o2, type = "l", col = "steelblue")
-lines(b13$datetime, b13$ph, col = "tomato")
+plot(morro_bay$datetime, morro_bay$o2, type = "l", col = "steelblue")
+lines(morro_bay$datetime, morro_bay$ph, col = "tomato")
 }
 \seealso{
 \code{\link[=lomad]{lomad()}}

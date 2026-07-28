@@ -41,16 +41,25 @@ truth is known, and on real estuarine monitoring data.
 
 ## Simulated example
 
-The packaged dataset `sim_decoupling` contains two scenarios built from the
-same base trends and AR(1) noise process. In the `"coupled"` scenario the two
-trends are identical ($d = 0$), so the null hypothesis of local similarity
-holds everywhere. In the `"decoupled"` scenario the trends separate in
-localized episodes ($d = 1.5$).
+We build two scenarios from the same base trends and noise process, differing
+only in the $L^2$ trend separation $d$. In the coupled scenario the two trends
+are identical ($d = 0$), so the null hypothesis of local similarity holds
+everywhere. In the decoupled scenario the trends separate in localized episodes
+($d = 1.5$). Generating them here rather than shipping them keeps the data
+transparent: every parameter of the simulation is visible.
 
 ```{r data}
-str(sim_decoupling)
-cpl <- subset(sim_decoupling, scenario == "coupled")
-dcp <- subset(sim_decoupling, scenario == "decoupled")
+make_scenario <- function(d, seed = 101) {
+  tr  <- sim_trends(n = 500, d = d, method = "smooth", bw = 50, seed = seed)
+  sim <- sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5,
+                        seed = seed + 1)
+  data.frame(t = seq_len(500), y1 = sim$y1, y2 = sim$y2,
+             nu1 = tr$x1, nu2 = tr$x2)
+}
+
+cpl <- make_scenario(d = 0)      # coupled: null holds everywhere
+dcp <- make_scenario(d = 1.5)    # decoupled: localized separation
+str(dcp)
 ```
 
 The observed series are dominated by noise; the trends (which we know here,
@@ -160,30 +169,30 @@ localization is at window, not point, resolution.
 
 ## Real-data example: Morro Bay
 
-The packaged dataset `morro_bay` contains two consecutive blocks of
+The packaged dataset `morro_bay` contains one contiguous block of
 quality-controlled dissolved oxygen and pH monitoring data from the Bay Mouth
-station of the Morro Bay estuary (CeNCOOS sensors), standardized, tidally
-presmoothed, and downsampled to 6-hourly resolution (see `?morro_bay`).
+station of the Morro Bay estuary (CeNCOOS sensors), covering February to
+April 2022, standardized, tidally presmoothed, and downsampled to 6-hourly
+resolution (see `?morro_bay`).
 Dissolved oxygen and pH are biogeochemically linked in an estuary, so
 persistent local decoupling of their trends is a potential indicator of a
 disturbance to the system.
 
 ```{r mb-data}
-b13 <- subset(morro_bay, block == 13)   # Feb-Apr 2022
-range(b13$datetime)
+range(morro_bay$datetime)
 ```
 
 With 6-hourly data we smooth over one day ($h = 4$) and use 15-day rolling
 windows ($s = 60$), matching the accompanying paper's application:
 
 ```{r mb-fit}
-fit_b13 <- lomad_fit(b13$o2, b13$ph, h = 4, s = 60)
-tst_b13 <- lomad_test(fit_b13, alpha = 0.05)
-sum(tst_b13$rejected, na.rm = TRUE)
+fit_mb <- lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60)
+tst_mb <- lomad_test(fit_mb, alpha = 0.05)
+sum(tst_mb$rejected, na.rm = TRUE)
 ```
 
 ```{r mb-plot, fig.height = 6}
-lomad_plot(fit_b13, tst_b13, dates = b13$datetime)
+lomad_plot(fit_mb, tst_mb, dates = morro_bay$datetime)
 ```
 
 The test flags one sustained episode, in April, in which the local correlation
@@ -194,15 +203,11 @@ flagged window $R_t$ only reaches 0.65, but $\rho_t$ there is above 0.8, so it
 is the gap between the two, scaled by $\sqrt{V_t/s}$, that matters rather than
 the depth of the dip itself.
 
-For comparison, block 12 — the winter period running directly into this one —
-shows no flagged points; the two trends remain coupled throughout:
-
-```{r mb-block12}
-b12 <- subset(morro_bay, block == 12)   # Oct 2021-Jan 2022
-fit_b12 <- lomad_fit(b12$o2, b12$ph, h = 4, s = 60)
-tst_b12 <- lomad_test(fit_b12, alpha = 0.05)
-sum(tst_b12$rejected, na.rm = TRUE)
-```
+Fitting this block raises a boundary warning: the pH residuals are close to
+white, so $\hat\phi$ for that series clamps at its lower bound of 0.01. That
+is benign — the diagnostics in the next section confirm the fit is admissible —
+but the warning is worth reading rather than dismissing, because the same
+mechanism at the *upper* bound signals a genuinely unusable fit.
 
 ## Checking the noise estimate
 
@@ -258,12 +263,10 @@ lomad_diagnose <- function(y1, y2, fit, h) {
   c(D2 = D2, S = 2 * (vgram(ghat, 1) - V_sn) / D2)
 }
 
-rbind(`block 12` = lomad_diagnose(b12$o2, b12$ph, fit_b12, h = 4),
-      `block 13` = lomad_diagnose(b13$o2, b13$ph, fit_b13, h = 4))
+lomad_diagnose(morro_bay$o2, morro_bay$ph, fit_mb, h = 4)
 ```
 
-`D2` is positive for both blocks, so the AR(1) fit is admissible. `S` is near
-zero — a genuine leak can only push it positive, since $V_g$ is a mean of
+`D2` is positive, so the AR(1) fit is admissible. `S` is near zero — a genuine leak can only push it positive, since $V_g$ is a mean of
 squares — so trend leakage is not distorting the noise estimate here. As a
 rough guide, `S` below about 0.05 indicates negligible leakage; approaching 1
 means $1 - \hat\phi$ is being driven toward zero by the trend rather than by
@@ -289,10 +292,10 @@ this out explicitly makes it clear where to substitute a different estimator.
 ```{r override}
 # 1. the common trend, exactly as lomad_fit() forms it
 h <- 4; s <- 60
-tr <- estimate_trends(b13$o2, b13$ph, h = h)
+tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = h)
 keep <- which(!is.na(tr$trend))
-r1 <- b13$o2[keep] - tr$trend[keep]
-r2 <- b13$ph[keep] - tr$trend[keep]
+r1 <- morro_bay$o2[keep] - tr$trend[keep]
+r2 <- morro_bay$ph[keep] - tr$trend[keep]
 
 # 2. difference-based AR(1) from two variogram lags:
 #    phi = V(2)/V(1) - 1 and sigma^2 = V(2) are exact identities for AR(1)
@@ -309,10 +312,10 @@ c(phi1 = n1$ar, phi2 = n2$ar)
 # 3. expand to autocovariance sequences and pass them in
 ov <- list(series1 = list(acov = arma_acov(n1$ar, n1$ma, n1$sigma2, lag_max = 100)),
            series2 = list(acov = arma_acov(n2$ar, n2$ma, n2$sigma2, lag_max = 100)))
-fit_ov <- lomad_fit(b13$o2, b13$ph, h = h, s = s, noise_override = ov)
+fit_ov <- lomad_fit(morro_bay$o2, morro_bay$ph, h = h, s = s, noise_override = ov)
 
 # matches the built-in estimate
-max(abs(fit_ov$rho - fit_b13$rho), na.rm = TRUE)
+max(abs(fit_ov$rho - fit_mb$rho), na.rm = TRUE)
 ```
 
 Replace step 2 with any estimator of your choosing — a higher-order AR fit, a

@@ -15,9 +15,11 @@
 #' @seealso [lomad_fit()], [lomad_test()], [lomad_plot()]
 #'
 #' @examples
-#' # Decoupled scenario from the packaged example data
-#' dcp <- subset(sim_decoupling, scenario == "decoupled")
-#' out <- lomad(dcp$y1, dcp$y2, h = 5, s = 125)
+#' # A decoupled scenario: trends separate in localized episodes
+#' tr  <- sim_trends(500, d = 1.5, method = "smooth", bw = 50, seed = 101)
+#' sim <- suppressMessages(
+#'   sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 102))
+#' out <- lomad(sim$y1, sim$y2, h = 5, s = 125)
 #' sum(out$test$rejected, na.rm = TRUE)   # flagged time points
 #'
 #' @export
