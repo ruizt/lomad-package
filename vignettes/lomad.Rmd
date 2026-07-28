@@ -204,6 +204,76 @@ tst_b12 <- lomad_test(fit_b12, alpha = 0.05)
 sum(tst_b12$rejected, na.rm = TRUE)
 ```
 
+## Checking the noise estimate
+
+`lomad_fit()` estimates the noise autocovariance from residuals taken against
+the *common* trend, so those residuals carry not only noise but half the gap
+between the two trends, $g_t = (\nu_{1t} - \nu_{2t})/2$. The estimator is
+difference-based, which suppresses that leakage but never removes it: the
+lag-$l$ variogram is additive,
+$V_r(l) = V_g(l) + V_Z(l)$, and $V_g(l) \geq 0$ always.
+
+Two quick checks are worth running on real data.
+
+**Is the noise model admissible?** The AR(1) fit uses two variogram lags, and
+the identity $V(2)/V(1) = 1 + \phi$ caps that ratio at 2 for any stationary
+AR(1). Equivalently $D_2 = 2V(1) - V(2)$ must be positive. When it is not, the
+fitted $\hat\phi$ exceeds 1 and is clamped — a sign the residuals are outside
+the model, usually because the series has been oversmoothed upstream.
+
+**Is trend leakage distorting the estimate?** $g$ is estimable without the
+common trend: smooth each series separately and halve the difference. Its
+lag-1 variogram overshoots the leak by the variogram of the smoothed noise,
+which the fitted parameters give you, so the difference estimates the leak.
+Scaling it by $D_2$ gives a dimensionless statistic that is small when
+difference-based estimation is doing its job.
+
+```{r diagnostic}
+vgram <- function(x, l) mean((x[(l + 1):length(x)] - x[1:(length(x) - l)])^2) / 2
+ma    <- function(x, h) as.numeric(stats::filter(x, rep(1 / h, h), sides = 1))
+
+# autocovariance of an h-step moving average of a process with acvf `g`
+acov_smoothed <- function(g, h, kmax) {
+  gl <- function(k) { k <- abs(k); if (k + 1 <= length(g)) g[k + 1] else 0 }
+  vapply(0:kmax, function(k)
+    sum(outer(0:(h - 1), 0:(h - 1), Vectorize(function(i, j) gl(k + i - j)))) / h^2,
+    numeric(1))
+}
+
+lomad_diagnose <- function(y1, y2, fit, h) {
+  keep <- which(!is.na(fit$trend))
+  r1   <- y1[keep] - fit$trend[keep]
+  ghat <- ((ma(y1, h) - ma(y2, h)) / 2)[keep]
+
+  D2 <- 2 * vgram(r1, 1) - vgram(r1, 2)          # must be > 0
+
+  # variogram of (Z1 - Z2)^(h) / 2 implied by the fitted noise parameters
+  a1 <- arma_acov(fit$noise$series1$ar, fit$noise$series1$ma,
+                  fit$noise$series1$sigma2, lag_max = 200)
+  a2 <- arma_acov(fit$noise$series2$ar, fit$noise$series2$ma,
+                  fit$noise$series2$sigma2, lag_max = 200)
+  s1 <- acov_smoothed(a1, h, 1); s2 <- acov_smoothed(a2, h, 1)
+  V_sn <- (s1[1] + s2[1]) / 4 - (s1[2] + s2[2]) / 4
+
+  c(D2 = D2, S = 2 * (vgram(ghat, 1) - V_sn) / D2)
+}
+
+rbind(`block 12` = lomad_diagnose(b12$o2, b12$ph, fit_b12, h = 4),
+      `block 13` = lomad_diagnose(b13$o2, b13$ph, fit_b13, h = 4))
+```
+
+`D2` is positive for both blocks, so the AR(1) fit is admissible. `S` is near
+zero — a genuine leak can only push it positive, since $V_g$ is a mean of
+squares — so trend leakage is not distorting the noise estimate here. As a
+rough guide, `S` below about 0.05 indicates negligible leakage; approaching 1
+means $1 - \hat\phi$ is being driven toward zero by the trend rather than by
+the data, and the noise variance is badly inflated.
+
+Both checks assume the noise model is *correctly specified*. Neither detects a
+wrong model: the AR(1) fit reproduces $V(1)$ and $V(2)$ exactly by
+construction, so misspecification that shows up only in the tail of the
+autocovariance is invisible to them.
+
 ## Supplying your own noise model
 
 `lomad_fit()` provides one noise estimator, a variogram-based AR(1) fit. The
