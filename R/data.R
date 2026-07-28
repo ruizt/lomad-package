@@ -3,8 +3,8 @@
 #' A contiguous block of quality-controlled dissolved oxygen and pH data from
 #' the Bay Mouth (BM1) water-quality station in Morro Bay, California,
 #' collected through the Central and Northern California Ocean Observing
-#' System (CeNCOOS), covering February to May 2023. The test flags one
-#' sustained decoupling episode in this block, in late April.
+#' System (CeNCOOS), covering August to October 2022. The test flags one
+#' sustained decoupling episode in this block, in mid-September.
 #'
 #' Raw hourly sensor data were quality-controlled with a QARTOD-based pipeline
 #' and split into contiguous blocks; each variable was standardized (z-score);
@@ -14,7 +14,7 @@
 #' standardized anomalies, not raw concentrations. The processing scripts live
 #' in the `lomad-analysis` repository (`mb-analysis/`).
 #'
-#' @format A data frame with 403 rows and 3 variables:
+#' @format A data frame with 208 rows and 3 variables:
 #' \describe{
 #'   \item{datetime}{POSIXct timestamp (6-hourly).}
 #'   \item{o2}{Numeric. Standardized, tidally presmoothed dissolved oxygen.}
