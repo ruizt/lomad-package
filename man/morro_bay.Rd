@@ -13,11 +13,13 @@ A data frame with 208 rows and 3 variables:
 }
 }
 \source{
-Water-quality monitoring by the Central and Northern California
-Ocean Observing System (CeNCOOS), Morro Bay BM1 station. Included here by
-permission of the monitoring program. The package's MIT license covers the
-code; if you reuse these observations, please credit CeNCOOS and cite the
-methods paper.
+Derived from water-quality monitoring by the Central and Northern
+California Ocean Observing System (CeNCOOS), Morro Bay BM1 station. The
+underlying observations are public; the curated series shipped here were
+quality-controlled and processed as described above.
+
+The package's MIT license applies to the code only and not to this
+dataset. Please credit CeNCOOS and cite the methods paper if you reuse it.
 }
 \usage{
 morro_bay
