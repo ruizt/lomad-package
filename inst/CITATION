@@ -28,7 +28,7 @@ bibentry(
     person("Alea",      "Seifert"),
     person("Emma",      "Hamilton"),
     person("Catherine", "Mispagel"),
-    person("Andres",    "Rocha")
+    person("Andres Efren Rocha", "Jayasinha")
   ),
   year     = "2026",
   note     = "R package version 0.0.1",

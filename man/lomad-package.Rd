@@ -25,6 +25,7 @@ rate in multiple testing under dependency. \emph{The Annals of Statistics},
 Useful links:
 \itemize{
   \item \url{https://github.com/ruizt/lomad-package}
+  \item \doi{10.5281/zenodo.21695840}
   \item Report bugs at \url{https://github.com/ruizt/lomad-package/issues}
 }
 
@@ -38,7 +39,7 @@ Authors:
   \item Alea Seifert (simulation infrastructure)
   \item Emma Hamilton (trend simulation)
   \item Catherine Mispagel (noise simulation)
-  \item Andres Rocha (independent validation implementation)
+  \item Andres Efren Rocha Jayasinha (independent validation implementation)
 }
 
 Other contributors:

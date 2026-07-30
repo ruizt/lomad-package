@@ -11,7 +11,7 @@ Authors@R: c(
            comment = "trend simulation"),
     person("Catherine", "Mispagel", role = "aut",
            comment = "noise simulation"),
-    person("Andres", "Rocha", role = "aut",
+    person("Andres Efren Rocha", "Jayasinha", role = "aut",
            comment = "independent validation implementation"),
     person("Emily", "Bockmon", role = "ctb",
            comment = "Morro Bay monitoring data"))
