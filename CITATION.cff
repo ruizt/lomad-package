@@ -1,0 +1,63 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite both the methods paper (preferred) and
+  the software itself when the specific implementation is relevant.
+title: "lomad: Local Moving Average Decoupling"
+abstract: >-
+  Detects localized periods of decoupling between two time series using
+  correlations between local moving averages. Trends are extracted by moving
+  average, noise autocovariance is estimated from the residual variogram, and
+  the local sample correlation is compared against its shared-trend benchmark
+  by pointwise one-sided Z-tests with a Benjamini-Yekutieli step-up correction
+  controlling the false discovery rate under arbitrary dependence. Ships a
+  quality-controlled snippet of dissolved oxygen and pH monitoring data from
+  the Morro Bay estuary, collected by the Central and Northern California Ocean
+  Observing System (CeNCOOS) and contributed by Emily Bockmon.
+type: software
+version: 0.0.1
+date-released: "2026-07-29"
+license: MIT
+repository-code: "https://github.com/ruizt/lomad-package"
+url: "https://github.com/ruizt/lomad-package"
+keywords:
+  - time series
+  - rolling correlation
+  - false discovery rate
+  - nonstationary
+  - water quality
+authors:
+  - family-names: Ruiz
+    given-names: Trevor
+    orcid: "https://orcid.org/0009-0001-1452-2542"
+  - family-names: Seifert
+    given-names: Alea
+  - family-names: Hamilton
+    given-names: Emma
+  - family-names: Mispagel
+    given-names: Catherine
+  - family-names: Rocha
+    given-names: Andres
+preferred-citation:
+  type: unpublished
+  title: >-
+    Inference for local trend similarity in nonstationary time series via
+    rolling correlation, with application to assessing stability in an
+    estuarine system
+  year: 2026
+  notes: Manuscript in preparation
+  authors:
+    - family-names: Ruiz
+      given-names: Trevor
+      orcid: "https://orcid.org/0009-0001-1452-2542"
+    - family-names: Seifert
+      given-names: Alea
+    - family-names: Hamilton
+      given-names: Emma
+    - family-names: Mispagel
+      given-names: Catherine
+    - family-names: Hunt
+      given-names: Otis
+    - family-names: Garcia
+      given-names: Jose
+    - family-names: Bockmon
+      given-names: Emily
