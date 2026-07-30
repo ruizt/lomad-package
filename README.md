@@ -130,10 +130,9 @@ with `devtools::load_all()`.
 
 See `AGENTS.md` for source conventions.
 
-All analyses reported in the methods paper — numerical validation, simulation 
-studies, and the Morro Bay field analysis — live in the companion repository
-[`lomad-analysis`](https://github.com/ruizt/lomad-analysis), which installs
-this package from GitHub.
+All analyses reported in the methods paper — numerical validation, simulation
+studies, and the Morro Bay field analysis — live in a companion repository,
+`lomad-analysis`, which will be released alongside the paper.
 
 ## Project structure
 

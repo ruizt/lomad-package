@@ -11,8 +11,8 @@
 #' tidal periodicity was removed by zeroing the Fourier components at the five
 #' dominant tidal constituents and their spring-neap sidebands; and the series
 #' were downsampled to 6-hourly resolution. Values are therefore dimensionless
-#' standardized anomalies, not raw concentrations. The processing scripts live
-#' in the `lomad-analysis` repository (`mb-analysis/`).
+#' standardized anomalies, not raw concentrations. The processing scripts will
+#' be released with the methods paper.
 #'
 #' @format A data frame with 208 rows and 3 variables:
 #' \describe{
@@ -21,8 +21,11 @@
 #'   \item{ph}{Numeric. Standardized, tidally presmoothed pH.}
 #' }
 #'
-#' @source Central and Northern California Ocean Observing System (CeNCOOS)
-#'   water-quality monitoring, Morro Bay BM1 station.
+#' @source Water-quality monitoring by the Central and Northern California
+#'   Ocean Observing System (CeNCOOS), Morro Bay BM1 station. Included here by
+#'   permission of the monitoring program. The package's MIT license covers the
+#'   code; if you reuse these observations, please credit CeNCOOS and cite the
+#'   methods paper.
 #'
 #' @seealso [lomad()]
 #'
