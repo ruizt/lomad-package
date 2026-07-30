@@ -17,6 +17,7 @@ type: software
 version: 0.0.1
 date-released: "2026-07-29"
 license: MIT
+doi: "10.5281/zenodo.21695840"
 repository-code: "https://github.com/ruizt/lomad-package"
 url: "https://github.com/ruizt/lomad-package"
 keywords:

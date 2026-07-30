@@ -32,5 +32,6 @@ bibentry(
   ),
   year     = "2026",
   note     = "R package version 0.0.1",
+  doi      = "10.5281/zenodo.21695840",
   url      = "https://github.com/ruizt/lomad-package"
 )
