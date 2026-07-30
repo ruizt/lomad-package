@@ -43,13 +43,13 @@
 #'     \item{`"cross"`}{`bw` (bandwidth, default 50), `coupling` (fraction of
 #'       time near coupled state, default 0.8).}
 #'     \item{`"rate"`}{`rate` (decoupling events per unit time, default 0.01)
-#'       and `bump`, the pulse shape: `"gamma"` (default) or `"gaussian"`.
+#'       and `bump`, the pulse shape: `"gaussian"` (default) or `"gamma"`.
 #'       Both place identical events at identical times and differ only in
 #'       smoothness at onset -- the gamma pulse has a corner there, the
 #'       gaussian does not. Because difference-based noise estimation is
 #'       trend-robust only for trends with bounded derivative (Hall and
 #'       Van Keilegom, 2003), the two behave very differently under strong
-#'       noise autocorrelation.}
+#'       noise autocorrelation, which is why the smooth shape is the default.}
 #'   }
 #'
 #' @return A list with:

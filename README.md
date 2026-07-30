@@ -15,8 +15,9 @@ between otherwise correlated moving averages. The method:
    values under a shared-trend null, using a CLT-based test statistic with
    Benjamini–Yekutieli FDR correction.
 
-Noise parameters (AR/ARMA) are estimated via a variogram-based approach that
-is robust to trend contamination (Hall and Van Keilegom, 2003). The asymptotic 
+AR(1) noise parameters are estimated via a variogram-based approach that is
+robust to trend contamination (Hall and Van Keilegom, 2003). A noise
+autocovariance estimated some other way can be supplied directly instead. The asymptotic 
 variance of the local correlation accounts for autocorrelation in the smoothed 
 noise.
 
@@ -35,8 +36,6 @@ noise.
 | `lomad_plot()` | Visualise fit and test results |
 | `estimate_trends()` | Extract trends via moving average |
 | `estimate_ar1_noise()` | Estimate AR(1) noise parameters via variogram |
-| `estimate_arma_noise()` | Estimate ARMA noise parameters via long-AR approximation |
-| `estimate_acf_noise()` | Nonparametric noise autocovariance via the variogram (model-free fallback) |
 | `sim_trends()` | Generate synthetic trend pairs at controlled L² separation |
 | `sim_noise_pair()` | Add calibrated ARMA noise to trend pairs |
 
@@ -121,7 +120,7 @@ specific implementation is relevant):
 
 Run `citation("lomad")` for BibTeX entries for both the paper and the software.
 Method references for individual functions appear in their help pages (e.g.
-`?estimate_arma_noise`, `?lomad_test`).
+`?estimate_ar1_noise`, `?lomad_test`).
 
 ## For contributors
 

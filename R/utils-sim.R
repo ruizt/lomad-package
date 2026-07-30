@@ -94,18 +94,18 @@
 # `bump` sets the pulse shape and changes nothing else -- event times, spacing
 # and depth are identical either way.
 #
-#   "gamma"    (default) shape-2 gamma. Rises from zero with non-zero slope, so
-#              w_t has a corner at each event onset.
-#   "gaussian" symmetric normal with the same standard deviation, matched so the
-#              pulses have equal width. Smooth everywhere; no onset corner.
+#   "gaussian" (default) symmetric normal. Smooth everywhere; no onset corner.
+#   "gamma"    shape-2 gamma, matched on width. Rises from zero with non-zero
+#              slope, so w_t has a corner at each event onset.
 #
-# The distinction matters downstream. Noise estimation is difference-based and
-# is trend-robust only for trends with bounded derivative (Hall and Van
-# Keilegom, 2003, eqn 2.4); a corner is exactly what differencing fails to
-# cancel, so the gamma pulse leaks into the residual autocovariance far more
-# than the gaussian one does. "gamma" is retained as the default so that
-# previously archived simulation results remain reproducible.
-.make_w_rate <- function(n, rate = 0.01, bump = c("gamma", "gaussian")) {
+# Gaussian is the default because a corner is exactly what this package's own
+# noise estimation cannot handle: it is difference-based, and trend-robust only
+# for trends with bounded derivative (Hall and Van Keilegom, 2003, eqn 2.4). The
+# gamma pulse therefore leaks into the residual autocovariance far more than the
+# gaussian one, badly enough to cost the fixed-rate structure most of its
+# detection at high autocorrelation. Gamma is kept because that contrast is
+# itself worth simulating, not as a sensible starting point.
+.make_w_rate <- function(n, rate = 0.01, bump = c("gaussian", "gamma")) {
   bump     <- match.arg(bump)
   n_events <- round(rate * n)
   if (n_events < 1) stop("`rate * n` must be at least 1; increase `rate` or `n`.")

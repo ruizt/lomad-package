@@ -149,11 +149,11 @@ test_that("the gaussian pulse leaks less through differencing", {
             leak(lomad:::.make_w_rate(600, bump = "gamma")))
 })
 
-test_that("sim_trends passes `bump` through and default is unchanged", {
+test_that("sim_trends passes `bump` through and defaults to gaussian", {
   a <- sim_trends(600, d = 1, method = "rate", seed = 7)
-  b <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gamma")
+  b <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gaussian")
   expect_equal(a$x1, b$x1)
-  g <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gaussian")
+  g <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gamma")
   expect_false(isTRUE(all.equal(a$x1, g$x1)))
   expect_equal(sqrt(sum((g$x1 - g$x2)^2)), 1, tolerance = 1e-8)
 })

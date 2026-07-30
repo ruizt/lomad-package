@@ -2,7 +2,6 @@
 #
 # Internal:
 #   .ma_filter_acov()  — ACVF of the MA(h)-smoothed process
-#   .ma_filtered_var() — variance of MA(h)-smoothed process (lag 0 only)
 #
 # Exported (used by simulation scripts and lomad_fit_clt pipeline):
 #   compute_tau_sq()   — rolling signal variance
@@ -30,11 +29,6 @@
     result[l + 1L] <- sum(wts * acov_raw[lag_vals + 1L])
   }
   result
-}
-
-# Variance of MA(h)-smoothed process (scalar shortcut, lag 0 only).
-.ma_filtered_var <- function(acov, h) {
-  .ma_filter_acov(acov, h, lag_max = 0L)[1L]
 }
 
 # Expected windowed sample variance of a stationary process.
