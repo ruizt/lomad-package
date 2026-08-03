@@ -32,12 +32,13 @@ test_that("lomad_fit: returns expected structure for CLT method", {
   expect_type(fit, "list")
   expect_equal(fit$method, "clt")
 
-  expected_names <- c("method", "trend", "ma1", "ma2", "noise", "acov_sums",
-                      "tau1_sq", "tau2_sq", "rho", "V", "R", "valid_idx", "inputs")
+  expected_names <- c("method", "ma1", "ma2", "noise", "acov_sums",
+                      "tau1_sq", "tau2_sq", "rho", "V", "R", "r_hat", "valid_idx",
+                      "inputs")
   expect_true(all(expected_names %in% names(fit)))
 
   n <- length(sp$y1)
-  expect_length(fit$trend, n)
+  expect_length(fit$r_hat, n)
   expect_length(fit$rho, n)
   expect_length(fit$V, n)
   expect_length(fit$R, n)

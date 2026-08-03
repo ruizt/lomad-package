@@ -11,9 +11,9 @@ test_that("estimate_trends: returns correct structure", {
   y2 <- trend + rnorm(n, sd = 0.5)
 
   tr <- estimate_trends(y1, y2, h = 10)
-  expect_true(all(c("trend", "ma1", "ma2") %in% names(tr)))
-  expect_length(tr$trend, n)
-  expect_true(any(is.na(tr$trend)))
+  expect_true(all(c("ma1", "ma2") %in% names(tr)))
+  expect_length(tr$ma1, n)
+  expect_true(any(is.na(tr$ma1)))
 })
 
 
@@ -31,7 +31,7 @@ test_that("estimate_ar1_noise: recovers phi approximately", {
   y2 <- trend + z2
 
   tr <- estimate_trends(y1, y2, h = 10)
-  noise <- estimate_ar1_noise(y1, y2, tr$trend)
+  noise <- estimate_ar1_noise(y1, y2)
 
   expect_equal(noise$series1$ar, true_phi, tolerance = 0.15,
                label = "AR(1) phi recovery")

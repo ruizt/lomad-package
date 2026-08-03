@@ -99,7 +99,7 @@
   tau1_sq <- pmax(0, compute_tau_sq(tr$ma1, s) - bias1)
   tau2_sq <- pmax(0, compute_tau_sq(tr$ma2, s) - bias2)
 
-  rho <- compute_rho(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq)
+  rho <- compute_rho(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq)   # rho^(0), r = 1
   V   <- compute_V(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq,
                    sums$L1, sums$L2, sums$Q1, sums$Q2, sums$Q12)
 
@@ -114,11 +114,15 @@
     if (is.finite(r) && abs(r) < 1) R[t] <- r
   }
 
+  # r_hat = R / rho^(0) is the affine-invariant effect-size estimate: it is
+  # the sample correlation with the attenuation from finite SNR divided out,
+  # so delta_hat = sqrt(1 - r_hat^2) estimates the local separation directly.
+  r_hat <- ifelse(is.finite(rho) & rho > 0, R / rho, NA_real_)
+
   valid_idx <- which(is.finite(R) & is.finite(rho) & is.finite(V) & V > 0)
 
   list(
     method    = "clt",
-    trend     = tr$trend,
     ma1       = tr$ma1,
     ma2       = tr$ma2,
     noise     = noise,
@@ -128,6 +132,7 @@
     rho       = rho,
     V         = V,
     R         = R,
+    r_hat     = r_hat,
     valid_idx = valid_idx,
     inputs    = list(n = n, h = h, s = s, lag_max = lag_max)
   )

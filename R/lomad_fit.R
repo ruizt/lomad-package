@@ -28,10 +28,10 @@
 #' @return A named list with elements:
 #'   \describe{
 #'     \item{method}{Character `"clt"`.}
-#'     \item{trend}{Shared trend estimate.}
 #'     \item{ma1, ma2}{MA-smoothed series.}
 #'     \item{noise}{Per-series noise parameter estimates.}
 #'     \item{tau1_sq, tau2_sq, rho, V, R}{CLT quantities for inference.}
+#'     \item{r_hat}{Affine-invariant effect-size estimate \eqn{R_t/\rho_t^{(0)}}.}
 #'     \item{valid_idx}{Integer indices of time points with valid test stats.}
 #'     \item{inputs}{List of input parameters (n, h, s, lag_max).}
 #'   }
