@@ -27,6 +27,10 @@
 #' @param trend2 Optional numeric vector (length `n`). As `trend1`, for
 #'   series 2. Passing the same vector for both reproduces the pre-0.1.0
 #'   shared-trend behaviour.
+#' @param h Optional integer. Width of the moving average subtracted to form
+#'   the residuals. Supplying it corrects the estimate for the high-pass
+#'   filtering that subtraction induces; `NULL` skips the correction and is
+#'   appropriate only when no trend was subtracted.
 #'
 #' @return A named list with elements `series1` and `series2`, each containing:
 #'   \describe{
@@ -43,7 +47,8 @@
 #'
 #'
 #' @export
-estimate_ar1_noise <- function(y1, y2, trend1 = NULL, trend2 = NULL) {
+estimate_ar1_noise <- function(y1, y2, trend1 = NULL, trend2 = NULL,
+                               h = NULL) {
   if (length(y1) != length(y2))
     stop("`y1` and `y2` must have the same length.")
   for (nm in c("trend1", "trend2")) {
@@ -62,7 +67,7 @@ estimate_ar1_noise <- function(y1, y2, trend1 = NULL, trend2 = NULL) {
   resid2 <- r2[valid_t]
 
   list(
-    series1 = .variogram_ar1(resid1),
-    series2 = .variogram_ar1(resid2)
+    series1 = .variogram_ar1(resid1, h = h),
+    series2 = .variogram_ar1(resid2, h = h)
   )
 }
