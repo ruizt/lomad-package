@@ -20,11 +20,32 @@
 # ---- Fourier basis -------------------------------------------------------
 
 # Draw Fourier coefficients with spectral decay: sd_k = sd0 / k^p
-.generate_fourier_coef <- function(nb, sd0 = 2, p = 2.5, k_min = 1L) {
+.generate_fourier_coef <- function(nb, sd0 = 2, p = 2.5, k_min = 1L,
+                                   normalize = TRUE) {
   K    <- (nb - 1L) / 2L
   k    <- rep(seq_len(K), each = 2L)
   sd_k <- ifelse(k >= k_min, sd0 / (k^p), 0)
-  stats::rnorm(2L * K, mean = 0, sd = sd_k)
+  cf   <- stats::rnorm(2L * K, mean = 0, sd = sd_k)
+
+  # Fix the total signal power, keeping the spectral shape random.
+  #
+  # The affine effect size is delta = d / sqrt(||mu1||^2 + d^2), so a random
+  # ||mu1|| feeds straight into it: unnormalized, ||mu1|| has CV 0.51 and
+  # spans 0.34 to 7.41 across seeds, which spreads delta from roughly 0.2 to
+  # 0.7 at a nominal d = 1. Each point on a power curve would then average
+  # over a wide band of true effect sizes.
+  #
+  # Amplitude is not a design factor worth keeping random here: SNR is already
+  # controlled separately via lambda_target, and the trend *shape* still
+  # varies freely. Normalizing to sqrt(sum(sd_k^2)) = E||coef||^2 ^ (1/2)
+  # leaves the expected scale (and hence the meaning of sd0) untouched and
+  # removes only the fluctuation.
+  if (normalize) {
+    target <- sqrt(sum(sd_k^2))
+    nrm    <- sqrt(sum(cf^2))
+    if (nrm > 0 && target > 0) cf <- cf * (target / nrm)
+  }
+  cf
 }
 
 # Generate a pair of coefficient vectors separated by distance d using the
