@@ -47,7 +47,7 @@
     noise <- list(series1 = norm_spec(spec1), series2 = norm_spec(spec2))
     message("Using noise_override (oracle parameters)")
   } else {
-    noise <- estimate_ar1_noise(y1, y2)
+    noise <- estimate_ar1_noise(y1, y2, tr$ma1, tr$ma2)
     message(sprintf("AR(1): phi = %.3f / %.3f",
                     noise$series1$ar, noise$series2$ar))
   }
