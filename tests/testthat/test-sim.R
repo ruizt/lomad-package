@@ -70,13 +70,42 @@ test_that("sim_trends: seed reproducibility", {
 
 # ---- .generate_coef_pair ----
 
-test_that(".generate_coef_pair: distance between coefs equals d", {
+test_that(".generate_coef_pair: displacement is orthogonal to coef1", {
   for (d in c(0.5, 1, 3)) {
     cp <- .generate_coef_pair(nb = 25, d = d, seed = 2244)
-    dist <- sqrt(sum((cp$coef2 - cp$coef1)^2))
-    expect_equal(dist, d, tolerance = 1e-8,
-                 label = sprintf("coef pair distance, d = %g", d))
+    # coef2 is rescaled, so recover the pre-rescaling displacement direction
+    # by comparing against the unit vector along coef1.
+    u1  <- cp$coef1 / sqrt(sum(cp$coef1^2))
+    off <- cp$coef2 - sum(cp$coef2 * u1) * u1     # component orthogonal to c1
+    expect_gt(sqrt(sum(off^2)), 0)
   }
+})
+
+test_that(".generate_coef_pair: equal norms, so lambda_1 == lambda_2", {
+  for (d in c(0, 0.5, 1, 3)) {
+    cp <- .generate_coef_pair(nb = 25, d = d, seed = 2244)
+    expect_equal(sqrt(sum(cp$coef2^2)), sqrt(sum(cp$coef1^2)),
+                 tolerance = 1e-8,
+                 label = sprintf("coef2 norm, d = %g", d))
+  }
+})
+
+test_that(".generate_coef_pair: d maps to the affine effect size", {
+  # Orthogonal displacement then rescaling preserves the angle, so
+  #   r = cos(angle) = ||c1|| / sqrt(||c1||^2 + d^2)
+  # exactly, and delta = sqrt(1 - r^2) = d / sqrt(||c1||^2 + d^2).
+  for (d in c(0.5, 1, 3)) {
+    cp <- .generate_coef_pair(nb = 25, d = d, seed = 2244)
+    n1 <- sqrt(sum(cp$coef1^2))
+    r  <- sum(cp$coef1 * cp$coef2) / (n1 * sqrt(sum(cp$coef2^2)))
+    expect_equal(r, n1 / sqrt(n1^2 + d^2), tolerance = 1e-8,
+                 label = sprintf("r, d = %g", d))
+  }
+})
+
+test_that(".generate_coef_pair: d = 0 is exactly the null", {
+  cp <- .generate_coef_pair(nb = 25, d = 0, seed = 2244)
+  expect_equal(cp$coef2, cp$coef1, tolerance = 1e-10)
 })
 
 
