@@ -83,38 +83,57 @@ compute_tau_sq <- function(trend, s) {
 }
 
 
-#' Local population correlation under the common-trend approximation
+#' Local population correlation under affine similarity
 #'
 #' Computes the approximation for the local population correlation \eqn{\rho}
 #' from Proposition 1:
 #' \deqn{\rho \approx
-#'   \frac{\tau^2}{\sqrt{(\tau^2 + \sigma_1^2)(\tau^2 + \sigma_2^2)}}.}
+#'   \frac{r\,\tau_1\tau_2}{\sqrt{(\tau_1^2 + \sigma_1^2)(\tau_2^2 + \sigma_2^2)}}.}
+#' The default `r = 1` gives \eqn{\rho^{(0)}}, the value under \eqn{H_0},
+#' which is what the test uses. Values `r < 1` give the attenuated correlation
+#' under the alternative, via the exact identity
+#' \eqn{\rho = (1 - \delta^2)^{1/2}\rho^{(0)}} with \eqn{\delta = (1-r^2)^{1/2}}.
 #'
-#' @param tau_sq Non-negative numeric (scalar or vector). Signal variance
-#'   \eqn{\tau^2} over the local window.
+#' @param tau1_sq Non-negative numeric (scalar or vector). Signal variance
+#'   \eqn{\tau_1^2} of series 1 over the local window.
+#' @param tau2_sq Non-negative numeric (scalar or vector). Signal variance
+#'   \eqn{\tau_2^2} of series 2 over the local window.
 #' @param sigma1_sq Positive numeric (scalar). Marginal noise variance for
 #'   series 1, \eqn{\sigma_1^2 = \gamma_1(0)}.
 #' @param sigma2_sq Positive numeric (scalar). Marginal noise variance for
 #'   series 2, \eqn{\sigma_2^2 = \gamma_2(0)}.
+#' @param r Numeric in \eqn{[-1, 1]}. Window correlation of the two signals.
+#'   Defaults to 1 (the null).
 #'
-#' @return Numeric (same length as `tau_sq`) in \eqn{[0, 1)}.
+#' @return Numeric (recycled to the length of `tau1_sq`/`tau2_sq`).
 #'
 #' @export
-compute_rho <- function(tau_sq, sigma1_sq, sigma2_sq) {
-  stopifnot(sigma1_sq > 0, sigma2_sq > 0, all(tau_sq >= 0, na.rm = TRUE))
-  B <- tau_sq + sigma1_sq
-  D <- tau_sq + sigma2_sq
-  tau_sq / sqrt(B * D)
+compute_rho <- function(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq, r = 1) {
+  stopifnot(sigma1_sq > 0, sigma2_sq > 0,
+            all(tau1_sq >= 0, na.rm = TRUE),
+            all(tau2_sq >= 0, na.rm = TRUE))
+  B <- tau1_sq + sigma1_sq
+  D <- tau2_sq + sigma2_sq
+  r * sqrt(tau1_sq * tau2_sq) / sqrt(B * D)
 }
 
 
 #' Asymptotic variance of the local sample correlation (V)
 #'
-#' Computes the approximation for \eqn{V} from Proposition 1. The pointwise
-#' CLT gives \eqn{\sqrt{s}(R_t - \rho_t) \xrightarrow{d} N(0, V_t)}, so the
+#' Computes the approximation for \eqn{V} from Proposition 1 under \eqn{H_0}.
+#' The pointwise CLT gives \eqn{\sqrt{s}(R_t - \rho_t) \to N(0, V_t)}, so the
 #' standard error of \eqn{R_t} is \eqn{\sqrt{V_t / s}}.
 #'
-#' @param tau_sq Non-negative numeric (scalar or vector). Signal variance.
+#' Note the cross-pairing: \eqn{\tau_2^2} multiplies the \eqn{L_1} term and
+#' \eqn{\tau_1^2} multiplies the \eqn{L_2} term. This comes from the
+#' \eqn{(5,5)} entry of \eqn{\Sigma}, where
+#' \eqn{\mathrm{Cov}(\tilde Y_{1t}\tilde Y_{2t}, \cdot)} contributes
+#' \eqn{s_{1t}s_{1,t-l}\gamma_2(l) + s_{2t}s_{2,t-l}\gamma_1(l)}.
+#'
+#' @param tau1_sq Non-negative numeric (scalar or vector). Signal variance,
+#'   series 1.
+#' @param tau2_sq Non-negative numeric (scalar or vector). Signal variance,
+#'   series 2.
 #' @param sigma1_sq Positive numeric. Marginal noise variance, series 1.
 #' @param sigma2_sq Positive numeric. Marginal noise variance, series 2.
 #' @param L1 Numeric. \eqn{L_1 = \sum_{l} \gamma_1(l)}, long-run variance of
@@ -124,17 +143,17 @@ compute_rho <- function(tau_sq, sigma1_sq, sigma2_sq) {
 #' @param Q2 Numeric. \eqn{Q_2 = \sum_{l} \gamma_2(l)^2}.
 #' @param Q12 Numeric. \eqn{Q_{12} = \sum_{l} \gamma_1(l)\gamma_2(l)}.
 #'
-#' @return Numeric (same length as `tau_sq`), non-negative.
+#' @return Numeric, non-negative.
 #'
 #' @export
-compute_V <- function(tau_sq, sigma1_sq, sigma2_sq,
+compute_V <- function(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq,
                       L1, L2, Q1, Q2, Q12) {
   stopifnot(sigma1_sq > 0, sigma2_sq > 0)
-  B  <- tau_sq + sigma1_sq
-  D  <- tau_sq + sigma2_sq
+  B <- tau1_sq + sigma1_sq
+  D <- tau2_sq + sigma2_sq
   Q12 / (B * D) +
-    tau_sq * sigma1_sq^2 * L1 / (B^3 * D) +
-    tau_sq * sigma2_sq^2 * L2 / (B * D^3) +
-    tau_sq^2 * Q1 / (2 * B^3 * D) +
-    tau_sq^2 * Q2 / (2 * B * D^3)
+    tau2_sq * sigma1_sq^2 * L1 / (B^3 * D) +
+    tau1_sq * sigma2_sq^2 * L2 / (B * D^3) +
+    tau1_sq * tau2_sq * Q1 / (2 * B^3 * D) +
+    tau1_sq * tau2_sq * Q2 / (2 * B * D^3)
 }

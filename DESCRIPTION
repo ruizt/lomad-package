@@ -1,6 +1,6 @@
 Package: lomad
 Title: Local Moving Average Decoupling
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: c(
     person("Trevor", "Ruiz", email = "truiz01@calpoly.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0001-1452-2542",

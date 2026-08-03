@@ -47,7 +47,7 @@
     noise <- list(series1 = norm_spec(spec1), series2 = norm_spec(spec2))
     message("Using noise_override (oracle parameters)")
   } else {
-    noise <- estimate_ar1_noise(y1, y2, tr$trend)
+    noise <- estimate_ar1_noise(y1, y2)
     message(sprintf("AR(1): phi = %.3f / %.3f",
                     noise$series1$ar, noise$series2$ar))
   }
@@ -85,19 +85,23 @@
   sigma1_sq <- acov1[1L]
   sigma2_sq <- acov2[1L]
 
-  # The trend estimate carries a noise component xi_t = (eta_1t + eta_2t)/2
-  # with ACVF (gamma_1 + gamma_2)/4 under cross-series independence. Its
-  # contribution to the windowed signal variance is the *expected windowed*
-  # variance of xi — not its marginal variance (sigma1_sq + sigma2_sq)/4,
-  # which over-subtracts when the smoothed noise is autocorrelated (the
-  # window mean absorbs low-frequency noise variation).
-  acov_xi    <- (acov1 + acov2) / 4
-  noise_bias <- max(0, .windowed_var_expect(acov_xi, s))
+  # Each smoothed series carries its own MA-filtered noise, so the windowed
+  # sample variance of ma_k over-states tau_k^2 by the *expected windowed*
+  # variance of that noise -- not its marginal variance, which over-subtracts
+  # when the smoothed noise is autocorrelated (the window mean absorbs
+  # low-frequency variation). Under the old shared-trend scheme the averaging
+  # in (ma1 + ma2)/2 halved the noise before tau^2 was formed; per-series
+  # estimation loses that, so this correction is load-bearing rather than
+  # cosmetic.
+  bias1 <- max(0, .windowed_var_expect(acov1, s))
+  bias2 <- max(0, .windowed_var_expect(acov2, s))
 
-  tau_sq <- pmax(0, compute_tau_sq(tr$trend, s) - noise_bias)
-  rho    <- compute_rho(tau_sq, sigma1_sq, sigma2_sq)
-  V      <- compute_V(tau_sq, sigma1_sq, sigma2_sq,
-                      sums$L1, sums$L2, sums$Q1, sums$Q2, sums$Q12)
+  tau1_sq <- pmax(0, compute_tau_sq(tr$ma1, s) - bias1)
+  tau2_sq <- pmax(0, compute_tau_sq(tr$ma2, s) - bias2)
+
+  rho <- compute_rho(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq)
+  V   <- compute_V(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq,
+                   sums$L1, sums$L2, sums$Q1, sums$Q2, sums$Q12)
 
   R <- rep(NA_real_, n)
   for (t in s:n) {
@@ -119,7 +123,8 @@
     ma2       = tr$ma2,
     noise     = noise,
     acov_sums = sums,
-    tau_sq    = tau_sq,
+    tau1_sq   = tau1_sq,
+    tau2_sq   = tau2_sq,
     rho       = rho,
     V         = V,
     R         = R,
