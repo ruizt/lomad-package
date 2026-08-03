@@ -33,7 +33,7 @@ test_that("lomad_fit: returns expected structure for CLT method", {
   expect_equal(fit$method, "clt")
 
   expected_names <- c("method", "ma1", "ma2", "noise", "acov_sums",
-                      "tau1_sq", "tau2_sq", "rho", "V", "R", "r_hat", "valid_idx",
+                      "tau1_sq", "tau2_sq", "rho", "V", "R", "r_hat", "lambda1", "lambda2", "testable", "valid_idx",
                       "inputs")
   expect_true(all(expected_names %in% names(fit)))
 
@@ -348,4 +348,18 @@ test_that("lomad_plot draws a calendar axis for POSIXct and plain axis otherwise
   expect_silent(lomad_plot(fit, tst, dates = b2$datetime))   # POSIXct
   expect_silent(lomad_plot(fit, tst))                        # integer index
   dev.off()
+})
+
+test_that("lomad_fit: min_lambda flags untestable windows without changing defaults", {
+  f0 <- suppressMessages(lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60))
+  f1 <- suppressMessages(lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60,
+                                   min_lambda = 0.25))
+  # default excludes nothing
+  expect_true(all(f0$testable[is.finite(f0$rho)]))
+  # raising it only ever removes windows, never adds
+  expect_true(all(f1$valid_idx %in% f0$valid_idx))
+  expect_lt(length(f1$valid_idx), length(f0$valid_idx))
+  # the flagged ones are exactly those below the threshold
+  fin <- is.finite(f1$lambda1) & is.finite(f1$lambda2)
+  expect_equal(f1$testable[fin], pmin(f1$lambda1, f1$lambda2)[fin] >= 0.25)
 })

@@ -22,6 +22,13 @@
 #'   holding \eqn{\gamma(0), \gamma(1), \ldots}; zero beyond its length).
 #'   Useful for oracle experiments or externally estimated noise. May also
 #'   be a list of two such lists (one per series).
+#' @param min_lambda Non-negative numeric. Windows whose smaller
+#'   signal-to-noise ratio falls below this are marked untestable and excluded
+#'   from `valid_idx`. Defaults to 0, which excludes nothing and reproduces
+#'   the behaviour of earlier versions. Raising it removes windows the test
+#'   cannot speak to, but note the resulting subset is not independent of the
+#'   p-values: discarded windows are conservative under the null, so filtering
+#'   consumes conservatism rather than being free.
 #' @param lag_max Integer. Lag truncation for autocovariance sums.
 #'   Default 100.
 #'
@@ -32,6 +39,11 @@
 #'     \item{noise}{Per-series noise parameter estimates.}
 #'     \item{tau1_sq, tau2_sq, rho, V, R}{CLT quantities for inference.}
 #'     \item{r_hat}{Affine-invariant effect-size estimate \eqn{R_t/\rho_t^{(0)}}.}
+#'     \item{lambda1, lambda2}{Per-window signal-to-noise \eqn{\tau_k^2/\sigma_k^2}.}
+#'     \item{testable}{`FALSE` where `min(lambda1, lambda2) < min_lambda`. The
+#'       test has no power as either \eqn{\lambda_k \to 0}: \eqn{\rho^{(0)}}
+#'       falls to zero with it, so \eqn{R} has nothing to fall below. Such a
+#'       window is untestable, which is not the same as showing no decoupling.}
 #'     \item{valid_idx}{Integer indices of time points with valid test stats.}
 #'     \item{inputs}{List of input parameters (n, h, s, lag_max).}
 #'   }
@@ -63,7 +75,8 @@ lomad_fit <- function(x1             = NULL,
                       s              = NULL,
                       noise_method   = c("ar1"),
                       noise_override = NULL,
-                      lag_max        = 100L) {
+                      lag_max        = 100L,
+                      min_lambda     = 0) {
 
   if (is.null(x1) || is.null(x2))
     stop("`x1` and `x2` are required.")
@@ -73,5 +86,6 @@ lomad_fit <- function(x1             = NULL,
   noise_method <- match.arg(noise_method)
 
   .lomad_fit_clt(y1 = x1, y2 = x2, h = h, s = s, lag_max = lag_max,
+                 min_lambda = min_lambda,
                  noise_method = noise_method, noise_override = noise_override)
 }

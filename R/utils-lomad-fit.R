@@ -6,7 +6,8 @@
 # CLT pipeline: the paper method.
 # Estimates all quantities needed for pointwise inference on R_t.
 .lomad_fit_clt <- function(y1, y2, h, s, lag_max,
-                          noise_method = "ar1", noise_override = NULL) {
+                          noise_method = "ar1", noise_override = NULL,
+                          min_lambda = 0) {
 
   y1 <- as.numeric(y1)
   y2 <- as.numeric(y2)
@@ -114,12 +115,27 @@
     if (is.finite(r) && abs(r) < 1) R[t] <- r
   }
 
+  # Per-window signal-to-noise. rho^(0) = tau1*tau2/sqrt(BD) goes to zero as
+  # either lambda does, so where one series carries almost no trend signal the
+  # null predicts near-zero correlation and the test has no power: R has
+  # nothing to fall below. Those windows are *untestable*, which is a
+  # different statement from "no decoupling detected", and reporting them as
+  # the latter is misleading. Note this is an information limit, not an
+  # artefact of estimating two taus -- at lambda near zero a small trend
+  # proportional to the other series and a flat trend produce the same
+  # observed correlation.
+  lambda1  <- tau1_sq / sigma1_sq
+  lambda2  <- tau2_sq / sigma2_sq
+  testable <- is.finite(lambda1) & is.finite(lambda2) &
+    pmin(lambda1, lambda2) >= min_lambda
+
   # r_hat = R / rho^(0) is the affine-invariant effect-size estimate: it is
   # the sample correlation with the attenuation from finite SNR divided out,
   # so delta_hat = sqrt(1 - r_hat^2) estimates the local separation directly.
   r_hat <- ifelse(is.finite(rho) & rho > 0, R / rho, NA_real_)
 
-  valid_idx <- which(is.finite(R) & is.finite(rho) & is.finite(V) & V > 0)
+  valid_idx <- which(is.finite(R) & is.finite(rho) & is.finite(V) & V > 0 &
+                     testable)
 
   list(
     method    = "clt",
@@ -133,6 +149,9 @@
     V         = V,
     R         = R,
     r_hat     = r_hat,
+    lambda1   = lambda1,
+    lambda2   = lambda2,
+    testable  = testable,
     valid_idx = valid_idx,
     inputs    = list(n = n, h = h, s = s, lag_max = lag_max)
   )
