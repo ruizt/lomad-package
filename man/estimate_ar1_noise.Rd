@@ -4,15 +4,24 @@
 \alias{estimate_ar1_noise}
 \title{Estimate AR(1) noise parameters via the variogram}
 \usage{
-estimate_ar1_noise(y1, y2, trend)
+estimate_ar1_noise(y1, y2, trend1 = NULL, trend2 = NULL, h = NULL)
 }
 \arguments{
 \item{y1}{Numeric vector. First observed series.}
 
 \item{y2}{Numeric vector. Second observed series, same length as \code{y1}.}
 
-\item{trend}{Numeric vector (length \code{n}). Shared trend estimate
-\eqn{\hat s_t} as returned by \code{\link[=estimate_trends]{estimate_trends()}}\verb{$trend}.}
+\item{trend1}{Optional numeric vector (length \code{n}). Trend for series 1,
+subtracted before differencing. \code{NULL} differences \code{y1} directly.}
+
+\item{trend2}{Optional numeric vector (length \code{n}). As \code{trend1}, for
+series 2. Passing the same vector for both reproduces the pre-0.1.0
+shared-trend behaviour.}
+
+\item{h}{Optional integer. Width of the moving average subtracted to form
+the residuals. Supplying it corrects the estimate for the high-pass
+filtering that subtraction induces; \code{NULL} skips the correction and is
+appropriate only when no trend was subtracted.}
 }
 \value{
 A named list with elements \code{series1} and \code{series2}, each containing:
@@ -25,16 +34,20 @@ A named list with elements \code{series1} and \code{series2}, each containing:
 }
 \description{
 Estimates the AR(1) coefficient and innovation variance for each series
-using the lag-1 and lag-2 sample variograms of shared-trend residuals.
-The variogram at short lags is dominated by the noise (not the trend),
-making the estimates robust to trend differences when \eqn{d > 0}.
+from the lag-1 and lag-2 sample variograms. Differencing annihilates a
+slowly varying trend, so the variogram at short lags is dominated by the
+noise and no trend estimate is required.
 }
 \details{
 This is a special case of the difference-based approach of
 Hall and Van Keilegom (2003) for the AR(1) model. For general AR(p)
 
-Residuals are computed as \eqn{y_k - \hat s_t}, where \eqn{\hat s_t} is
-the shared trend estimate from \code{\link[=estimate_trends]{estimate_trends()}}.  The variogram
+Each series is detrended by its own smoothed version before differencing.
+Differencing alone annihilates a linear trend but not a curved one, and at
+the smoothing windows used in practice the residual curvature inflates the
+short-lag variogram enough to bias \eqn{\hat\phi} upward; subtracting a
+shared trend instead makes that bias grow with the separation between the
+two trends. Per-series detrending avoids both. The variogram
 \deqn{V(l) = \frac{1}{2(n - l)} \sum_{t=1}^{n-l} (r_{t+l} - r_t)^2}
 satisfies \eqn{V(l) = \gamma(0) - \gamma(l)} for a stationary process.
 For AR(1) with coefficient \eqn{\phi} and innovation variance

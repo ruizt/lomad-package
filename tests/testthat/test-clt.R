@@ -58,17 +58,17 @@ test_that("acov_sums: single-series shortcut", {
 # ---- compute_rho ----
 
 test_that("compute_rho: tau_sq = 0 returns 0", {
-  expect_equal(compute_rho(0, 1, 1), 0)
+  expect_equal(compute_rho(0, 0, 1, 1), 0)
 })
 
 test_that("compute_rho: exact formula", {
   tau <- 3; s1 <- 1; s2 <- 2
   expected <- tau / sqrt((tau + s1) * (tau + s2))
-  expect_equal(compute_rho(tau, s1, s2), expected)
+  expect_equal(compute_rho(tau, tau, s1, s2), expected)
 })
 
 test_that("compute_rho: vectorised over tau_sq", {
-  rho <- compute_rho(c(0, 1, 10), 1, 1)
+  rho <- compute_rho(c(0, 1, 10), c(0, 1, 10), 1, 1)
   expect_length(rho, 3)
   expect_equal(rho[1], 0)
   expect_true(all(rho >= 0 & rho < 1))
@@ -79,13 +79,14 @@ test_that("compute_rho: vectorised over tau_sq", {
 # ---- compute_V ----
 
 test_that("compute_V: returns positive for valid inputs", {
-  V <- compute_V(tau_sq = 2, sigma1_sq = 1, sigma2_sq = 1,
+  V <- compute_V(tau1_sq = 2, tau2_sq = 2, sigma1_sq = 1, sigma2_sq = 1,
                  L1 = 3, L2 = 3, Q1 = 2, Q2 = 2, Q12 = 2)
   expect_true(V > 0)
 })
 
 test_that("compute_V: vectorised over tau_sq", {
-  V <- compute_V(tau_sq = c(1, 5, 10), sigma1_sq = 1, sigma2_sq = 1,
+  V <- compute_V(tau1_sq = c(1, 5, 10), tau2_sq = c(1, 5, 10),
+                 sigma1_sq = 1, sigma2_sq = 1,
                  L1 = 3, L2 = 3, Q1 = 2, Q2 = 2, Q12 = 2)
   expect_length(V, 3)
   expect_true(all(V > 0))
@@ -154,4 +155,41 @@ test_that(".windowed_var_expect: truncates lags beyond acov length", {
   s    <- 10
   manual <- (1 - 1 / s) * 2 - (2 / s^2) * (s - 1) * 1
   expect_equal(.windowed_var_expect(acov, s), manual, tolerance = 1e-12)
+})
+
+
+# ---- two-tau regression against the pre-0.1.0 (single-tau) formulae --------
+
+test_that("compute_rho/compute_V reduce to the old formulae when tau1 == tau2", {
+  tau <- 0.05; s1 <- 0.3; s2 <- 0.1
+  L1 <- 0.8; L2 <- 0.25; Q1 <- 0.12; Q2 <- 0.03; Q12 <- 0.05
+
+  expect_equal(compute_rho(tau, tau, s1, s2, r = 1),
+               tau / sqrt((tau + s1) * (tau + s2)))
+
+  B <- tau + s1; D <- tau + s2
+  expect_equal(
+    compute_V(tau, tau, s1, s2, L1, L2, Q1, Q2, Q12),
+    Q12 / (B * D) + tau * s1^2 * L1 / (B^3 * D) + tau * s2^2 * L2 / (B * D^3) +
+      tau^2 * Q1 / (2 * B^3 * D) + tau^2 * Q2 / (2 * B * D^3)
+  )
+})
+
+test_that("compute_rho: r enters multiplicatively and rho <= rho0", {
+  t1 <- 0.4; t2 <- 0.9; s1 <- 0.3; s2 <- 0.2
+  rho0 <- compute_rho(t1, t2, s1, s2, r = 1)
+  for (r in c(0, 0.25, 0.5, 0.9, 1)) {
+    expect_equal(compute_rho(t1, t2, s1, s2, r = r), r * rho0)
+    expect_lte(compute_rho(t1, t2, s1, s2, r = r), rho0 + 1e-12)
+  }
+})
+
+test_that("compute_V is asymmetric in tau1/tau2 (cross-pairing)", {
+  # L1 pairs with tau2 and L2 with tau1, so swapping the taus alone must
+  # change V whenever L1 != L2 and sigma1 != sigma2.
+  v_a <- compute_V(0.2, 0.8, 0.3, 0.1, L1 = 0.8, L2 = 0.25,
+                   Q1 = 0.12, Q2 = 0.03, Q12 = 0.05)
+  v_b <- compute_V(0.8, 0.2, 0.3, 0.1, L1 = 0.8, L2 = 0.25,
+                   Q1 = 0.12, Q2 = 0.03, Q12 = 0.05)
+  expect_false(isTRUE(all.equal(v_a, v_b)))
 })

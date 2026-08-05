@@ -20,11 +20,32 @@
 # ---- Fourier basis -------------------------------------------------------
 
 # Draw Fourier coefficients with spectral decay: sd_k = sd0 / k^p
-.generate_fourier_coef <- function(nb, sd0 = 2, p = 2.5, k_min = 1L) {
+.generate_fourier_coef <- function(nb, sd0 = 2, p = 2.5, k_min = 1L,
+                                   normalize = TRUE) {
   K    <- (nb - 1L) / 2L
   k    <- rep(seq_len(K), each = 2L)
   sd_k <- ifelse(k >= k_min, sd0 / (k^p), 0)
-  stats::rnorm(2L * K, mean = 0, sd = sd_k)
+  cf   <- stats::rnorm(2L * K, mean = 0, sd = sd_k)
+
+  # Fix the total signal power, keeping the spectral shape random.
+  #
+  # The affine effect size is delta = d / sqrt(||mu1||^2 + d^2), so a random
+  # ||mu1|| feeds straight into it: unnormalized, ||mu1|| has CV 0.51 and
+  # spans 0.34 to 7.41 across seeds, which spreads delta from roughly 0.2 to
+  # 0.7 at a nominal d = 1. Each point on a power curve would then average
+  # over a wide band of true effect sizes.
+  #
+  # Amplitude is not a design factor worth keeping random here: SNR is already
+  # controlled separately via lambda_target, and the trend *shape* still
+  # varies freely. Normalizing to sqrt(sum(sd_k^2)) = E||coef||^2 ^ (1/2)
+  # leaves the expected scale (and hence the meaning of sd0) untouched and
+  # removes only the fluctuation.
+  if (normalize) {
+    target <- sqrt(sum(sd_k^2))
+    nrm    <- sqrt(sum(cf^2))
+    if (nrm > 0 && target > 0) cf <- cf * (target / nrm)
+  }
+  cf
 }
 
 # Generate a pair of coefficient vectors separated by distance d using the
@@ -41,9 +62,36 @@
   k_idx <- rep(seq_len((nb - 1L) / 2L), each = 2L)
   axes  <- ifelse(k_idx >= k_min, 1 / (k_idx^max(0, p - 0.1 * d)), 0)
   dir   <- u * axes
-  dir   <- dir / sqrt(sum(dir^2))
+
+  # Project out the component along coef1. Under affine similarity H_0 holds
+  # iff coef2 is parallel to coef1, so the null is a ray, not a point, and a
+  # displacement along coef1 moves coef2 *within* the null set -- it raises d
+  # without raising the departure from H_0. Leaving it in makes d a
+  # mismeasurement of effect size rather than a noisy measure of it.
+  c1_norm2 <- sum(coef1^2)
+  if (c1_norm2 > 0) dir <- dir - (sum(dir * coef1) / c1_norm2) * coef1
+
+  dn <- sqrt(sum(dir^2))
+  if (dn < .Machine$double.eps^0.5)
+    stop("Displacement direction collapsed after projection; redraw with a ",
+         "different seed.")
+  dir <- dir / dn
 
   coef2 <- coef1 + d * dir
+
+  # Rescale coef2 to ||coef1||. The displacement is orthogonal, so without
+  # this ||mu2||^2 = ||mu1||^2 + d^2 and the two series carry different signal
+  # power -- lambda_2/lambda_1 reaches 3 by d = 3, drifting with the very axis
+  # the power curves are plotted against.
+  #
+  # This costs nothing. The effect size is delta = sqrt(1 - r^2) with
+  # r = cos(angle between the trends), and rescaling is a pure scale change,
+  # which is exactly what the affine null is invariant to. So r, and hence
+  # delta = d/sqrt(||mu1||^2 + d^2), are preserved exactly. What it gives up
+  # is ||mu1 - mu2|| = d, which under a scale-invariant null is no longer the
+  # quantity worth preserving.
+  c2_norm2 <- sum(coef2^2)
+  if (c2_norm2 > 0) coef2 <- coef2 * sqrt(c1_norm2 / c2_norm2)
 
   list(coef1 = coef1, coef2 = coef2)
 }

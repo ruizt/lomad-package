@@ -1,7 +1,7 @@
 #' Plot detected decoupling periods from a lomad fit
 #'
 #' Two-panel base R plot. The upper panel shows the MA-smoothed series
-#' (`ma1`, `ma2`) and shared trend; the lower panel plots the rolling
+#' (`ma1`, `ma2`); the lower panel plots the rolling
 #' correlation `R_t` with theoretical `rho_t` as a dashed reference.
 #'
 #' The two panels shade *different* index ranges, deliberately. A rejection at
@@ -44,7 +44,6 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25,
   V     <- fit$V
   ma1   <- fit$ma1
   ma2   <- fit$ma2
-  trend <- fit$trend
 
   rejected <- tst$rejected
   rejected[is.na(rejected)] <- FALSE
@@ -70,14 +69,13 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25,
   shade_lo_ends   <- ends_lo[r_lo$values]
 
   shade_col <- grDevices::rgb(0.7, 0.85, 1, alpha)
-  col_trend <- grDevices::rgb(0.4, 0.4, 0.4, 0.8)
 
   old_par <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(old_par))
 
   graphics::par(mfrow = c(2, 1), oma = c(3, 0, 0, 0))
 
-  # Upper panel: smoothed series + trend
+  # Upper panel: smoothed series
   graphics::par(mar = c(0, 4, 2, 1))
   ylim_top <- range(c(ma1, ma2), na.rm = TRUE)
   ylim_top <- ylim_top + c(-1, 1) * diff(ylim_top) * 0.05
@@ -86,7 +84,6 @@ lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25,
   .shade_intervals(t_idx, shade_starts, shade_ends, shade_col)
   graphics::lines(t_idx, ma1, col = "blue", lwd = 1.5)
   graphics::lines(t_idx, ma2, col = "red", lwd = 1.5)
-  graphics::lines(t_idx, trend, col = col_trend, lwd = 1.2)
 
   # Lower panel: R_t with rho_t reference
   graphics::par(mar = c(0, 4, 0, 1))

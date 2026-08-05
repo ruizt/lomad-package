@@ -4,10 +4,14 @@
 \alias{compute_V}
 \title{Asymptotic variance of the local sample correlation (V)}
 \usage{
-compute_V(tau_sq, sigma1_sq, sigma2_sq, L1, L2, Q1, Q2, Q12)
+compute_V(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq, L1, L2, Q1, Q2, Q12)
 }
 \arguments{
-\item{tau_sq}{Non-negative numeric (scalar or vector). Signal variance.}
+\item{tau1_sq}{Non-negative numeric (scalar or vector). Signal variance,
+series 1.}
+
+\item{tau2_sq}{Non-negative numeric (scalar or vector). Signal variance,
+series 2.}
 
 \item{sigma1_sq}{Positive numeric. Marginal noise variance, series 1.}
 
@@ -25,10 +29,17 @@ series 1 noise.}
 \item{Q12}{Numeric. \eqn{Q_{12} = \sum_{l} \gamma_1(l)\gamma_2(l)}.}
 }
 \value{
-Numeric (same length as \code{tau_sq}), non-negative.
+Numeric, non-negative.
 }
 \description{
-Computes the approximation for \eqn{V} from Proposition 1. The pointwise
-CLT gives \eqn{\sqrt{s}(R_t - \rho_t) \xrightarrow{d} N(0, V_t)}, so the
+Computes the approximation for \eqn{V} from Proposition 1 under \eqn{H_0}.
+The pointwise CLT gives \eqn{\sqrt{s}(R_t - \rho_t) \to N(0, V_t)}, so the
 standard error of \eqn{R_t} is \eqn{\sqrt{V_t / s}}.
+}
+\details{
+Note the cross-pairing: \eqn{\tau_2^2} multiplies the \eqn{L_1} term and
+\eqn{\tau_1^2} multiplies the \eqn{L_2} term. This comes from the
+\eqn{(5,5)} entry of \eqn{\Sigma}, where
+\eqn{\mathrm{Cov}(\tilde Y_{1t}\tilde Y_{2t}, \cdot)} contributes
+\eqn{s_{1t}s_{1,t-l}\gamma_2(l) + s_{2t}s_{2,t-l}\gamma_1(l)}.
 }

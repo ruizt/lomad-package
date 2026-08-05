@@ -11,7 +11,8 @@ lomad_fit(
   s = NULL,
   noise_method = c("ar1"),
   noise_override = NULL,
-  lag_max = 100L
+  lag_max = 100L,
+  min_lambda = 0
 )
 }
 \arguments{
@@ -40,15 +41,28 @@ be a list of two such lists (one per series).}
 
 \item{lag_max}{Integer. Lag truncation for autocovariance sums.
 Default 100.}
+
+\item{min_lambda}{Non-negative numeric. Windows whose smaller
+signal-to-noise ratio falls below this are marked untestable and excluded
+from \code{valid_idx}. Defaults to 0, which excludes nothing and reproduces
+the behaviour of earlier versions. Raising it removes windows the test
+cannot speak to, but note the resulting subset is not independent of the
+p-values: discarded windows are conservative under the null, so filtering
+consumes conservatism rather than being free.}
 }
 \value{
 A named list with elements:
 \describe{
 \item{method}{Character \code{"clt"}.}
-\item{trend}{Shared trend estimate.}
 \item{ma1, ma2}{MA-smoothed series.}
 \item{noise}{Per-series noise parameter estimates.}
-\item{tau_sq, rho, V, R}{CLT quantities for inference.}
+\item{tau1_sq, tau2_sq, rho, V, R}{CLT quantities for inference.}
+\item{r_hat}{Affine-invariant effect-size estimate \eqn{R_t/\rho_t^{(0)}}.}
+\item{lambda1, lambda2}{Per-window signal-to-noise \eqn{\tau_k^2/\sigma_k^2}.}
+\item{testable}{\code{FALSE} where \code{min(lambda1, lambda2) < min_lambda}. The
+test has no power as either \eqn{\lambda_k \to 0}: \eqn{\rho^{(0)}}
+falls to zero with it, so \eqn{R} has nothing to fall below. Such a
+window is untestable, which is not the same as showing no decoupling.}
 \item{valid_idx}{Integer indices of time points with valid test stats.}
 \item{inputs}{List of input parameters (n, h, s, lag_max).}
 }

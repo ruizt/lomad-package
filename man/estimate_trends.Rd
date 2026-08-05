@@ -2,7 +2,7 @@
 % Please edit documentation in R/estimate_trends.R
 \name{estimate_trends}
 \alias{estimate_trends}
-\title{Estimate shared trend by MA smoothing}
+\title{Estimate per-series trends by MA smoothing}
 \usage{
 estimate_trends(y1, y2, h)
 }
@@ -17,18 +17,15 @@ estimate_trends(y1, y2, h)
 \value{
 A named list:
 \describe{
-\item{trend}{Numeric vector (length \code{n}). Estimated shared trend
-\eqn{\hat s_t}; \code{NA} at boundaries.}
 \item{ma1}{Numeric vector (length \code{n}). MA-smoothed series 1.}
 \item{ma2}{Numeric vector (length \code{n}). MA-smoothed series 2.}
 \item{h}{Integer. Window width used.}
 }
 }
 \description{
-Applies a one-sided moving-average filter of width \eqn{h} to each series
-and takes their pointwise average as the shared trend estimate:
-\deqn{\hat\nu^{(h)}_{kt} = \frac{1}{h}\sum_{j=0}^{h-1} y_{k,t-j}, \quad
-      \hat s_t = \frac{1}{2}\left(\hat\nu^{(h)}_{1t} +
-                                   \hat\nu^{(h)}_{2t}\right).}
+Applies a one-sided moving-average filter of width \eqn{h} to each series:
+\deqn{\hat\nu^{(h)}_{kt} = \frac{1}{h}\sum_{j=0}^{h-1} y_{k,t-j}.}
+Under affine similarity the two trends need not coincide, so no shared
+trend is formed.
 The first \eqn{h - 1} observations are \code{NA} due to the one-sided filter.
 }

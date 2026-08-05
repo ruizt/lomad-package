@@ -29,7 +29,7 @@ Invisibly returns \code{NULL}. Called for its side effect (base R plot).
 }
 \description{
 Two-panel base R plot. The upper panel shows the MA-smoothed series
-(\code{ma1}, \code{ma2}) and shared trend; the lower panel plots the rolling
+(\code{ma1}, \code{ma2}); the lower panel plots the rolling
 correlation \code{R_t} with theoretical \code{rho_t} as a dashed reference.
 }
 \details{

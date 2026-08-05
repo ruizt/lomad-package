@@ -238,22 +238,32 @@ acov_smoothed <- function(g, h, kmax) {
     numeric(1))
 }
 
+# ACVF of r = eta - eta^(h) for AR(1) eta with unit innovation variance, and
+# the V(2)/V(1) that follows. Monotone in phi, so it can be inverted.
+resid_acov <- function(phi, h, lag_max) {
+  a <- c(1 - 1 / h, rep(-1 / h, h - 1))
+  g <- function(l) phi^abs(l) / (1 - phi^2)
+  vapply(0:lag_max, function(l)
+    sum(outer(seq_along(a), seq_along(a),
+              Vectorize(function(j, k) a[j] * a[k] * g(l + k - j)))),
+    numeric(1))
+}
+resid_vratio <- function(phi, h) {
+  g <- resid_acov(phi, h, 2); (g[1] - g[3]) / (g[1] - g[2])
+}
+
 lomad_diagnose <- function(y1, y2, fit, h) {
-  keep <- which(!is.na(fit$trend))
-  r1   <- y1[keep] - fit$trend[keep]
-  ghat <- ((ma(y1, h) - ma(y2, h)) / 2)[keep]
+  keep <- which(!is.na(fit$ma1) & !is.na(fit$ma2))
+  r1   <- y1[keep] - fit$ma1[keep]
+  r2   <- y2[keep] - fit$ma2[keep]
 
-  D2 <- 2 * vgram(r1, 1) - vgram(r1, 2)          # must be > 0
-
-  # variogram of (Z1 - Z2)^(h) / 2 implied by the fitted noise parameters
-  a1 <- arma_acov(fit$noise$series1$ar, fit$noise$series1$ma,
-                  fit$noise$series1$sigma2, lag_max = 200)
-  a2 <- arma_acov(fit$noise$series2$ar, fit$noise$series2$ma,
-                  fit$noise$series2$sigma2, lag_max = 200)
-  s1 <- acov_smoothed(a1, h, 1); s2 <- acov_smoothed(a2, h, 1)
-  V_sn <- (s1[1] + s2[1]) / 4 - (s1[2] + s2[2]) / 4
-
-  c(D2 = D2, S = 2 * (vgram(ghat, 1) - V_sn) / D2)
+  # Observed ratio against the range an AR(1) can produce once filtered. A
+  # value outside [lo, hi] means no AR(1) noise, put through this smoother,
+  # could have generated these residuals.
+  lo <- resid_vratio(0.01, h); hi <- resid_vratio(0.99, h)
+  c(ratio1 = vgram(r1, 2) / vgram(r1, 1),
+    ratio2 = vgram(r2, 2) / vgram(r2, 1),
+    attainable_lo = lo, attainable_hi = hi)
 }
 
 lomad_diagnose(morro_bay$o2, morro_bay$ph, fit_mb, h = 4)
@@ -283,23 +293,32 @@ internally, reproduced step by step and supplied through the override. Working
 this out explicitly makes it clear where to substitute a different estimator.
 
 ```{r override}
-# 1. the common trend, exactly as lomad_fit() forms it
+# 1. each series against its own smoothed trend, as lomad_fit() forms them.
+#    There is no shared trend: under affine similarity the two trends need
+#    not coincide, so (ma1 + ma2)/2 estimates nothing.
 h <- 4; s <- 60
 tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = h)
-keep <- which(!is.na(tr$trend))
-r1 <- morro_bay$o2[keep] - tr$trend[keep]
-r2 <- morro_bay$ph[keep] - tr$trend[keep]
+keep <- which(!is.na(tr$ma1) & !is.na(tr$ma2))
+r1 <- morro_bay$o2[keep] - tr$ma1[keep]
+r2 <- morro_bay$ph[keep] - tr$ma2[keep]
 
-# 2. difference-based AR(1) from two variogram lags:
-#    phi = V(2)/V(1) - 1 and sigma^2 = V(2) are exact identities for AR(1)
+# 2. AR(1) from two variogram lags. phi = V(2)/V(1) - 1 is exact for an
+#    AR(1), but r is not one: subtracting ma_k removes part of the noise with
+#    the trend, leaving a high-pass-filtered AR(1). Inverting the plain
+#    relation reads phi too high -- by about +0.08 at h = 5. So invert the
+#    ratio the filtered residual actually has, using resid_vratio() above.
 vgram <- function(x, l) mean((x[(l + 1):length(x)] - x[1:(length(x) - l)])^2) / 2
-ar1_from_variogram <- function(r) {
-  V1 <- vgram(r, 1); V2 <- vgram(r, 2)
-  phi <- min(max(V2 / V1 - 1, 0.01), 0.99)
-  list(ar = phi, ma = numeric(0), sigma2 = V2)
+ar1_from_variogram <- function(r, h) {
+  ratio <- vgram(r, 2) / vgram(r, 1)
+  lo <- resid_vratio(0.01, h); hi <- resid_vratio(0.99, h)
+  phi <- if (ratio <= lo) 0.01 else if (ratio >= hi) 0.99 else
+    uniroot(function(p) resid_vratio(p, h) - ratio, c(0.01, 0.99),
+            tol = 1e-8)$root
+  g <- resid_acov(phi, h, 1)
+  list(ar = phi, ma = numeric(0), sigma2 = vgram(r, 1) / (g[1] - g[2]))
 }
-n1 <- ar1_from_variogram(r1)
-n2 <- ar1_from_variogram(r2)
+n1 <- ar1_from_variogram(r1, h)
+n2 <- ar1_from_variogram(r2, h)
 c(phi1 = n1$ar, phi2 = n2$ar)
 
 # 3. expand to autocovariance sequences and pass them in
