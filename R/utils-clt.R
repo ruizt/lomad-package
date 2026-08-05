@@ -89,8 +89,8 @@ compute_tau_sq <- function(trend, s) {
 #' from Proposition 1:
 #' \deqn{\rho \approx
 #'   \frac{r\,\tau_1\tau_2}{\sqrt{(\tau_1^2 + \sigma_1^2)(\tau_2^2 + \sigma_2^2)}}.}
-#' The default `r = 1` gives \eqn{\rho^{(0)}}, the value under \eqn{H_0},
-#' which is what the test uses. Values `r < 1` give the attenuated correlation
+#' The default \eqn{r = 1} gives \eqn{\rho^{(0)}}, the value under \eqn{H_0},
+#' which is what the test uses. Values \eqn{r < 1} give the attenuated correlation
 #' under the alternative, via the exact identity
 #' \eqn{\rho = (1 - \delta^2)^{1/2}\rho^{(0)}} with \eqn{\delta = (1-r^2)^{1/2}}.
 #'

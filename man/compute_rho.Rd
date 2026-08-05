@@ -2,26 +2,36 @@
 % Please edit documentation in R/utils-clt.R
 \name{compute_rho}
 \alias{compute_rho}
-\title{Local population correlation under the common-trend approximation}
+\title{Local population correlation under affine similarity}
 \usage{
-compute_rho(tau_sq, sigma1_sq, sigma2_sq)
+compute_rho(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq, r = 1)
 }
 \arguments{
-\item{tau_sq}{Non-negative numeric (scalar or vector). Signal variance
-\eqn{\tau^2} over the local window.}
+\item{tau1_sq}{Non-negative numeric (scalar or vector). Signal variance
+\eqn{\tau_1^2} of series 1 over the local window.}
+
+\item{tau2_sq}{Non-negative numeric (scalar or vector). Signal variance
+\eqn{\tau_2^2} of series 2 over the local window.}
 
 \item{sigma1_sq}{Positive numeric (scalar). Marginal noise variance for
 series 1, \eqn{\sigma_1^2 = \gamma_1(0)}.}
 
 \item{sigma2_sq}{Positive numeric (scalar). Marginal noise variance for
 series 2, \eqn{\sigma_2^2 = \gamma_2(0)}.}
+
+\item{r}{Numeric in \eqn{[-1, 1]}. Window correlation of the two signals.
+Defaults to 1 (the null).}
 }
 \value{
-Numeric (same length as \code{tau_sq}) in \eqn{[0, 1)}.
+Numeric (recycled to the length of \code{tau1_sq}/\code{tau2_sq}).
 }
 \description{
 Computes the approximation for the local population correlation \eqn{\rho}
 from Proposition 1:
 \deqn{\rho \approx
-  \frac{\tau^2}{\sqrt{(\tau^2 + \sigma_1^2)(\tau^2 + \sigma_2^2)}}.}
+  \frac{r\,\tau_1\tau_2}{\sqrt{(\tau_1^2 + \sigma_1^2)(\tau_2^2 + \sigma_2^2)}}.}
+The default \eqn{r = 1} gives \eqn{\rho^{(0)}}, the value under \eqn{H_0},
+which is what the test uses. Values \eqn{r < 1} give the attenuated correlation
+under the alternative, via the exact identity
+\eqn{\rho = (1 - \delta^2)^{1/2}\rho^{(0)}} with \eqn{\delta = (1-r^2)^{1/2}}.
 }
