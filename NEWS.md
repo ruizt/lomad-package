@@ -3,7 +3,7 @@
 The null hypothesis is now trend identity under an arbitrary unknown affine
 transformation: \eqn{\nu_2 = a + b\nu_1} with \eqn{b > 0}. Proposition 1 carries
 two signal-variance terms rather than one, and the shared-trend approximation is
-gone. Results from 0.0.1 will not reproduce under this version.
+gone.
 
 ## Breaking changes
 
@@ -19,11 +19,22 @@ gone. Results from 0.0.1 will not reproduce under this version.
 
 * `lomad_plot()` no longer draws the shared trend.
 
-* `sim_trends()` returns different trends for a given `seed` than 0.0.1 did, for
-  every `method`. Two changes are responsible, both in the base Fourier pair
-  that all methods build on: the first coefficient vector is normalised to fixed
-  total power, and the displacement is projected orthogonal to it and rescaled
-  to equal norm. Seeds are not comparable across versions.
+## Simulation
+
+* `sim_trends()` constrains the trend pair. The first coefficient vector is
+  normalised to fixed total power, and the displacement is projected orthogonal
+  to it and then rescaled to equal norm. Both act on the base Fourier pair that
+  every `method` builds on, not on the per-method coupling weight.
+
+  Fixing the norm is what makes `d` a usable design knob: the affine effect
+  size is delta = d / sqrt(||mu1||^2 + d^2), so a random ||mu1|| spreads delta
+  across roughly 0.2 to 0.7 at a nominal d = 1. Projecting out the component
+  along `coef1` matters because under affine similarity the null is a ray, not
+  a point -- displacement along `coef1` raises `d` while leaving H_0 true.
+
+  The equal-norm rescale costs nothing: delta depends only on the correlation
+  between the trends, and rescaling is a pure scale change, which is what the
+  affine null is invariant to.
 
 ## New
 
