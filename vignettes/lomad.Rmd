@@ -42,9 +42,9 @@ truth is known, and on real estuarine monitoring data.
 ## Simulated example
 
 We build two scenarios from the same base trends and noise process, differing
-only in the $L^2$ trend separation $d$. In the coupled scenario the two trends
-are identical ($d = 0$), so the null hypothesis of local similarity holds
-everywhere. In the decoupled scenario the trends separate in localized episodes
+only in $d$, which scales how far apart the trends are pushed. In the coupled
+scenario the two trends coincide ($d = 0$), so the null hypothesis of local
+similarity holds everywhere. In the decoupled scenario the trends separate in localized episodes
 ($d = 1.5$). Generating them here rather than shipping them keeps the data
 transparent: every parameter of the simulation is visible.
 
@@ -367,9 +367,34 @@ How that separation is distributed over time is set by `method`:
 | `"rs"` | episodes at irregular times, trends pushed apart symmetrically |
 | `"rm"` | as `"rs"`, but the trends may cross rather than only diverge |
 
-Because the structures distribute separation differently in time, the same $d$
-does not give the same local separation across them. Use `.compute_delta()` for
-the realized quantity.
+Separation is linear in $d$, but $d$ is not itself the separation: because the
+structures distribute it differently in time, the same $d$ gives noticeably
+different *local* separation across them. If you need the structures to be
+comparable, scale $d$ per structure rather than sharing one value.
+
+### Series that are only locally similar
+
+The null the method tests is *local affine similarity*: $\nu_{2t} = a_t + b_t
+\nu_{1t}$, where the coefficients may drift, so long as they are near constant
+within any one window. Two series that satisfy this are alike locally while
+their levels and scales can differ completely over the series as a whole.
+
+`sim_trends()` builds such a pair with `affine_s`, the window the drift is
+capped against:
+
+```{r affine}
+tr <- sim_trends(n = 2500, d = 0, method = "rs", bw = 50, nb = 151,
+                 affine_s = 100, affine_cap = 0.015, seed = 11)
+range(tr$b)      # gradient drifts across the series
+```
+
+The cap bounds how far $a_t$ and $b_t$ can move over any window of length
+`affine_s`, which is what keeps the pair similar *locally*; across the whole
+series the drift accumulates freely, so distant windows see genuinely different
+maps. `affine_cap = 0` disables the drift, and supplying `affine_a` / `affine_b`
+directly imposes a map of your choosing — `affine_b = rep(2, n)` for a fixed
+doubling, say. Neither draws random numbers, so a seed behaves the same as it
+does with the layer switched off.
 
 The structured methods work through a *coupling weight* $w_t$: the trends sit
 on top of each other where $w_t \approx 1$ and separate as it falls. Plotting
