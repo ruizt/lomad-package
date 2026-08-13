@@ -253,25 +253,22 @@
   list(x2 = a + b * x2, a = a, b = b)
 }
 
-# Realized per-window separation
+# Realized per-window separation: the smallest mean square distance between the
+# trends achievable under a local affine map with b > 0, normalised by the
+# variance of the regressand. The unconstrained minimiser is the least squares
+# regression of x1 on x2, whose residual variance is tau_1^2 (1 - r^2), so the
+# normalisation cancels and leaves
 #
-#     delta_t = sd_W(x2 - b_t x1) / sd_W(x2),
+#     delta_t^2 = 1 - (r_t^+)^2,   r_t = Corr_W(x1, x2),
 #
-# the RMS distance between the trends once the local affine map is removed,
-# normalised by the scale of the regressand. Windows follow the convention in
-# compute_tau_sq(): W_t = (t - s + 1):t, population normalisation, NA before s.
+# needing only the windowed correlation. The positive part is the constraint
+# b > 0: where the correlation is negative the minimiser sits at the boundary
+# b = 0, no positive map improves on the mean, and the separation is total.
+# Fitting freely instead would credit an orientation reversal as alignment.
 #
-# Supplying `b` takes the map from the generating coefficients, averaged over
-# the window. The intercept is absent because the residual is centred, which
-# removes any constant, so only the gradient is needed. Leaving `b` NULL fits
-# the map by least squares instead, giving the identity delta_t = sqrt(1 - r^2)
-# that applies on real data where the coefficients are unknown.
-#
-# The two differ only in how within-window drift of the coefficients is
-# charged. Least squares absorbs whatever part of it a constant map can, so it
-# reports the separation an analyst could not remove; the window average holds
-# the map fixed at its mean and so also charges the drift itself.
-.compute_delta <- function(x1, x2, s, b = NULL) {
+# Windows follow the convention in compute_tau_sq(): W_t = (t - s + 1):t,
+# population normalisation, NA before s.
+.compute_delta <- function(x1, x2, s) {
   s <- as.integer(s)
   stopifnot(s >= 2L, length(x1) == length(x2))
   n     <- length(x1)
@@ -281,21 +278,13 @@
     u1 <- x1[w]
     u2 <- x2[w]
     if (anyNA(u1) || anyNA(u2)) next
-    c1  <- u1 - mean(u1)
-    c2  <- u2 - mean(u2)
-    v2  <- mean(c2^2)
-    if (v2 <= 0) next
-    if (is.null(b)) {
-      v1 <- mean(c1^2)
-      if (v1 <= 0) next
-      beta <- mean(c1 * c2) / v1
-    } else {
-      bw_ <- b[w]
-      if (anyNA(bw_)) next
-      beta <- mean(bw_)
-    }
-    e <- c2 - beta * c1
-    delta[t] <- sqrt(mean(e^2) / v2)
+    c1 <- u1 - mean(u1)
+    c2 <- u2 - mean(u2)
+    v1 <- mean(c1^2)
+    v2 <- mean(c2^2)
+    if (v1 <= 0 || v2 <= 0) next
+    r <- max(0, mean(c1 * c2) / sqrt(v1 * v2))
+    delta[t] <- sqrt(1 - min(1, r)^2)
   }
   delta
 }

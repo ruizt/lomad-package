@@ -223,36 +223,6 @@ test_that("sim_trends: affine arguments are validated", {
 
 # ---- .compute_delta ----
 
-test_that(".compute_delta: least-squares branch is sqrt(1 - r^2)", {
-  set.seed(9)
-  x1 <- cumsum(rnorm(400))
-  x2 <- 0.4 + 1.3 * x1 + 0.3 * cumsum(rnorm(400))
-  s  <- 60L
-  expected <- vapply(seq_along(x1), function(t) {
-    if (t < s) return(NA_real_)
-    w <- (t - s + 1L):t
-    sqrt(1 - stats::cor(x1[w], x2[w])^2)
-  }, numeric(1))
-  expect_equal(.compute_delta(x1, x2, s), expected)
-})
-
-test_that(".compute_delta: an exact affine map gives zero separation", {
-  set.seed(10)
-  mu <- cumsum(rnorm(400))
-  y  <- -2 + 3 * mu
-  expect_equal(max(.compute_delta(mu, y, 60L), na.rm = TRUE), 0,
-               tolerance = 1e-12)
-  expect_equal(max(.compute_delta(mu, y, 60L, b = rep(3, 400)), na.rm = TRUE), 0,
-               tolerance = 1e-12)
-})
-
-test_that(".compute_delta: least-squares branch is affine invariant", {
-  set.seed(11)
-  x1 <- cumsum(rnorm(300)); x2 <- cumsum(rnorm(300))
-  expect_equal(.compute_delta(x1, x2, 50L),
-               .compute_delta(5 * x1 - 2, -3 * x2 + 9, 50L))
-})
-
 test_that(".compute_delta: window convention matches compute_tau_sq", {
   set.seed(12)
   x1 <- cumsum(rnorm(200)); x2 <- cumsum(rnorm(200))
@@ -321,4 +291,35 @@ test_that("sim_trends: affine_cap = 0 is a drift-free layer that draws nothing",
   set.seed(5); invisible(sim_trends(n, d = 1, method = "rs", bw = 30, seed = 9,
                                     affine_s = 60, affine_cap = 0))
   expect_identical(runif(1), r1)
+})
+
+
+test_that(".compute_delta: equals 1 - (r+)^2 with the b > 0 constraint", {
+  set.seed(22)
+  a <- cumsum(rnorm(400)); b <- cumsum(rnorm(400)); s <- 60L
+  expected <- vapply(seq_along(a), function(t) {
+    if (t < s) return(NA_real_)
+    w <- (t - s + 1L):t
+    sqrt(1 - max(0, stats::cor(a[w], b[w]))^2)
+  }, numeric(1))
+  expect_equal(.compute_delta(a, b, s), expected)
+})
+
+test_that(".compute_delta: exact affine maps and reversals", {
+  set.seed(10)
+  mu <- cumsum(rnorm(400))
+  # b > 0 map: perfectly aligned. sqrt(1 - r^2) loses half its precision to
+  # cancellation as r -> 1, so exact zero is not attainable in double precision.
+  expect_equal(max(.compute_delta(mu, -2 + 3 * mu, 60L), na.rm = TRUE), 0,
+               tolerance = 1e-7)
+  # b < 0: no positive map beats the mean, so separation is total
+  expect_equal(min(.compute_delta(mu, -mu, 60L), na.rm = TRUE), 1,
+               tolerance = 1e-12)
+})
+
+test_that(".compute_delta: invariant to positive affine rescaling", {
+  set.seed(11)
+  x1 <- cumsum(rnorm(300)); x2 <- cumsum(rnorm(300))
+  expect_equal(.compute_delta(x1, x2, 50L),
+               .compute_delta(5 * x1 - 2, 3 * x2 + 9, 50L))
 })
