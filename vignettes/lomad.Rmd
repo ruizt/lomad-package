@@ -213,27 +213,20 @@ $R_t$ dips without being flagged, because $\rho_t$ dips with it.
 
 ## Checking the noise estimate
 
-`lomad_fit()` estimates the noise autocovariance from residuals taken against
-the *common* trend, so those residuals carry not only noise but half the gap
-between the two trends, $g_t = (\nu_{1t} - \nu_{2t})/2$. The estimator is
-difference-based, which suppresses that leakage but never removes it: the
-lag-$l$ variogram is additive,
-$V_r(l) = V_g(l) + V_Z(l)$, and $V_g(l) \geq 0$ always.
+`lomad_fit()` fits an AR(1) to each series' residuals, and the fit can only be
+trusted if those residuals are something an AR(1) could have produced. One
+quick check on real data establishes that.
 
-Two quick checks are worth running on real data.
-
-**Is the noise model admissible?** The AR(1) fit uses two variogram lags, and
-the identity $V(2)/V(1) = 1 + \phi$ caps that ratio at 2 for any stationary
-AR(1). Equivalently $D_2 = 2V(1) - V(2)$ must be positive. When it is not, the
-fitted $\hat\phi$ exceeds 1 and is clamped — a sign the residuals are outside
-the model, usually because the series has been oversmoothed upstream.
-
-**Is trend leakage distorting the estimate?** $g$ is estimable without the
-common trend: smooth each series separately and halve the difference. Its
-lag-1 variogram overshoots the leak by the variogram of the smoothed noise,
-which the fitted parameters give you, so the difference estimates the leak.
-Scaling it by $D_2$ gives a dimensionless statistic that is small when
-difference-based estimation is doing its job.
+**Is the noise model admissible?** The fit uses two variogram lags, and for a
+stationary AR(1) the identity $V(2)/V(1) = 1 + \phi$ caps that ratio at 2.
+Subtracting a moving average complicates matters — it removes part of the noise
+along with the trend, leaving a high-pass-filtered AR(1) whose attainable ratio
+is narrower than $[1, 2]$ — so the check compares the observed ratio against
+the range that filtering actually permits. A value outside it means no AR(1),
+put through this smoother, could have generated these residuals. In practice
+that happens when the series has been oversmoothed upstream, or when the trend
+varies fast enough that the moving average cannot track it, in which case the
+leftover trend inflates $\hat\phi$ toward its clamp.
 
 ```{r diagnostic}
 vgram <- function(x, l) mean((x[(l + 1):length(x)] - x[1:(length(x) - l)])^2) / 2
@@ -278,16 +271,13 @@ lomad_diagnose <- function(y1, y2, fit, h) {
 lomad_diagnose(morro_bay$o2, morro_bay$ph, fit_mb, h = 4)
 ```
 
-`D2` is positive, so the AR(1) fit is admissible. `S` is near zero — a genuine leak can only push it positive, since $V_g$ is a mean of
-squares — so trend leakage is not distorting the noise estimate here. As a
-rough guide, `S` below about 0.05 indicates negligible leakage; approaching 1
-means $1 - \hat\phi$ is being driven toward zero by the trend rather than by
-the data, and the noise variance is badly inflated.
+Both ratios sit inside the attainable range, so the AR(1) fit is admissible
+here.
 
-Both checks assume the noise model is *correctly specified*. Neither detects a
-wrong model: the AR(1) fit reproduces $V(1)$ and $V(2)$ exactly by
+The check assumes the noise model is *correctly specified*. It does not detect
+a wrong model: the AR(1) fit reproduces $V(1)$ and $V(2)$ exactly by
 construction, so misspecification that shows up only in the tail of the
-autocovariance is invisible to them.
+autocovariance is invisible to it.
 
 ## Supplying your own noise model
 
