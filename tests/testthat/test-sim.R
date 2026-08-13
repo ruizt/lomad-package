@@ -5,9 +5,11 @@
 test_that("sim_trends: returns correct structure and length", {
   tr <- sim_trends(n = 200, d = 1, seed = 4831)
   expect_type(tr, "list")
-  expect_named(tr, c("x1", "x2", "x_mean", "w"))
+  expect_named(tr, c("x1", "x2", "x_mean", "w", "a", "b"))
   expect_length(tr$x1, 200)
   expect_length(tr$w, 200)
+  expect_equal(tr$a, rep(0, 200))
+  expect_equal(tr$b, rep(1, 200))
 })
 
 test_that("sim_trends: L2 distance equals d for all methods", {
@@ -185,4 +187,73 @@ test_that("sim_trends passes `bump` through and defaults to gaussian", {
   g <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gamma")
   expect_false(isTRUE(all.equal(a$x1, g$x1)))
   expect_equal(sqrt(sum((g$x1 - g$x2)^2)), 1, tolerance = 1e-8)
+})
+
+
+# ---- affine layer ----
+
+test_that("sim_trends: affine layer leaves x1 and the base trends untouched", {
+  set.seed(1); a <- sim_trends(400, d = 1, method = "smooth", bw = 30, seed = 22)
+  set.seed(1); b <- sim_trends(400, d = 1, method = "smooth", bw = 30, seed = 22,
+                               affine_s = 80)
+  expect_identical(a$x1, b$x1)
+  expect_identical(a$w, b$w)
+  expect_false(identical(a$x2, b$x2))
+})
+
+test_that("sim_trends: affine drift respects the per-window cap", {
+  tr <- sim_trends(2000, d = 0, method = "smooth", bw = 50, seed = 31,
+                   affine_s = 100, affine_cap = 0.02)
+  expect_equal(max(abs(diff(tr$b, lag = 100))), 0.02, tolerance = 1e-8)
+  expect_equal(max(abs(diff(tr$a, lag = 100))), 0.02 * sd(tr$x1),
+               tolerance = 1e-8)
+  expect_gt(diff(range(tr$b)), 0.02)   # accumulates beyond one window
+})
+
+test_that("sim_trends: affine arguments are validated", {
+  expect_error(sim_trends(200, affine_s = 1), "between 2")
+  expect_error(sim_trends(200, affine_s = 500), "between 2")
+  expect_error(sim_trends(200, affine_s = 50, affine_bw = 0), "positive")
+  expect_error(sim_trends(200, affine_s = 50, affine_cap = -1), "non-negative")
+})
+
+# ---- .compute_delta ----
+
+test_that(".compute_delta: least-squares branch is sqrt(1 - r^2)", {
+  set.seed(9)
+  x1 <- cumsum(rnorm(400))
+  x2 <- 0.4 + 1.3 * x1 + 0.3 * cumsum(rnorm(400))
+  s  <- 60L
+  expected <- vapply(seq_along(x1), function(t) {
+    if (t < s) return(NA_real_)
+    w <- (t - s + 1L):t
+    sqrt(1 - stats::cor(x1[w], x2[w])^2)
+  }, numeric(1))
+  expect_equal(.compute_delta(x1, x2, s), expected)
+})
+
+test_that(".compute_delta: an exact affine map gives zero separation", {
+  set.seed(10)
+  mu <- cumsum(rnorm(400))
+  y  <- -2 + 3 * mu
+  expect_equal(max(.compute_delta(mu, y, 60L), na.rm = TRUE), 0,
+               tolerance = 1e-12)
+  expect_equal(max(.compute_delta(mu, y, 60L, b = rep(3, 400)), na.rm = TRUE), 0,
+               tolerance = 1e-12)
+})
+
+test_that(".compute_delta: least-squares branch is affine invariant", {
+  set.seed(11)
+  x1 <- cumsum(rnorm(300)); x2 <- cumsum(rnorm(300))
+  expect_equal(.compute_delta(x1, x2, 50L),
+               .compute_delta(5 * x1 - 2, -3 * x2 + 9, 50L))
+})
+
+test_that(".compute_delta: window convention matches compute_tau_sq", {
+  set.seed(12)
+  x1 <- cumsum(rnorm(200)); x2 <- cumsum(rnorm(200))
+  d  <- .compute_delta(x1, x2, 40L)
+  expect_true(all(is.na(d[1:39])))
+  expect_true(all(is.finite(d[40:200])))
+  expect_length(d, 200)
 })

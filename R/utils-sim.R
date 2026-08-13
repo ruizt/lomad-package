@@ -13,6 +13,11 @@
 # Mixing:
 #   .apply_w()                — mix mu1, mu2 via w and rescale to target d
 #
+# Affine layer:
+#   .make_affine_walk()       — smoothed random walk, capped per window
+#   .apply_affine()           — x2 <- a_t + b_t x2
+#   .compute_delta()          — realized per-window separation delta_t
+#
 # Noise:
 #   .pacf_to_arma_coefs()     — PACF parameterisation → ARMA coefficients
 
@@ -200,6 +205,92 @@
     x_mean = x_mean,
     w      = w
   )
+}
+
+
+# ---- Affine layer --------------------------------------------------------
+
+# Smoothed random walk, rescaled so that its displacement over any window of
+# length `s` is exactly `cap`.
+#
+# The cap is what keeps the layer inside H_0: local affine similarity requires
+# a_t and b_t to be near constant *within* a window, but says nothing about
+# across windows, so capping the per-window increment lets the coefficients
+# accumulate freely over the series while distant windows still see genuinely
+# different maps.
+#
+# Smoothing decides how that budget is spent. A monotone path accumulates it
+# and a turning path cancels against itself, so bandwidth trades total
+# displacement against the number of direction changes -- at bw = n the walk is
+# close to a single arc, and by bw = n/10 it turns often enough to lose three
+# quarters of the reachable range.
+.make_affine_walk <- function(n, s, bw = 0.5, cap = 0.015) {
+  z  <- cumsum(stats::rnorm(n))
+  z  <- stats::ksmooth(seq_len(n), z, kernel = "normal",
+                       bandwidth = bw * n, x.points = seq_len(n))$y
+  z  <- z - z[1L]
+  mx <- max(abs(diff(z, lag = s)))
+  if (mx > 0) z <- z * (cap / mx)
+  z
+}
+
+# Apply a slowly drifting affine map to the second series: x2 <- a_t + b_t x2.
+#
+# a_t is put on the scale of x1 so that `cap` reads the same way for both
+# coefficients -- a fraction of a series standard deviation per window for the
+# intercept, a fraction of unit slope for the gradient.
+.apply_affine <- function(x1, x2, s, bw = 0.5, cap = 0.015) {
+  n <- length(x2)
+  a <- stats::sd(x1) * .make_affine_walk(n, s, bw = bw, cap = cap)
+  b <- 1 + .make_affine_walk(n, s, bw = bw, cap = cap)
+  list(x2 = a + b * x2, a = a, b = b)
+}
+
+# Realized per-window separation
+#
+#     delta_t = sd_W(x2 - b_t x1) / sd_W(x2),
+#
+# the RMS distance between the trends once the local affine map is removed,
+# normalised by the scale of the regressand. Windows follow the convention in
+# compute_tau_sq(): W_t = (t - s + 1):t, population normalisation, NA before s.
+#
+# Supplying `b` takes the map from the generating coefficients, averaged over
+# the window. The intercept is absent because the residual is centred, which
+# removes any constant, so only the gradient is needed. Leaving `b` NULL fits
+# the map by least squares instead, giving the identity delta_t = sqrt(1 - r^2)
+# that applies on real data where the coefficients are unknown.
+#
+# The two differ only in how within-window drift of the coefficients is
+# charged. Least squares absorbs whatever part of it a constant map can, so it
+# reports the separation an analyst could not remove; the window average holds
+# the map fixed at its mean and so also charges the drift itself.
+.compute_delta <- function(x1, x2, s, b = NULL) {
+  s <- as.integer(s)
+  stopifnot(s >= 2L, length(x1) == length(x2))
+  n     <- length(x1)
+  delta <- rep(NA_real_, n)
+  for (t in s:n) {
+    w  <- (t - s + 1L):t
+    u1 <- x1[w]
+    u2 <- x2[w]
+    if (anyNA(u1) || anyNA(u2)) next
+    c1  <- u1 - mean(u1)
+    c2  <- u2 - mean(u2)
+    v2  <- mean(c2^2)
+    if (v2 <= 0) next
+    if (is.null(b)) {
+      v1 <- mean(c1^2)
+      if (v1 <= 0) next
+      beta <- mean(c1 * c2) / v1
+    } else {
+      bw_ <- b[w]
+      if (anyNA(bw_)) next
+      beta <- mean(bw_)
+    }
+    e <- c2 - beta * c1
+    delta[t] <- sqrt(mean(e^2) / v2)
+  }
+  delta
 }
 
 

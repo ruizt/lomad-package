@@ -22,6 +22,14 @@ signal variance, and the shared trend is gone from the API.
 * `lomad_fit()` gains `min_lambda`, defaulting to `0`, and returns `testable`,
   `r_hat`, `lambda1` and `lambda2`.
 
+* `sim_trends()` gains an optional affine layer, `x2 <- a_t + b_t * x2`, via
+  `affine_s`, `affine_bw` and `affine_cap`. The coefficients drift slowly
+  enough to be near constant within any window of length `affine_s` while
+  accumulating across the series, so the pair stays locally affine similar but
+  distant windows see different maps. It is applied after `d`, which continues
+  to act on the base trends as before, and is off by default. The return value
+  gains the realized `a` and `b`.
+
 ## Changed
 
 * `estimate_ar1_noise()` estimates noise from per-series residuals rather than

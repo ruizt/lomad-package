@@ -13,6 +13,9 @@ sim_trends(
   sd0 = 2,
   p = 2.5,
   k_min = 1L,
+  affine_s = NULL,
+  affine_bw = 0.5,
+  affine_cap = 0.015,
   seed = NULL,
   ...
 )
@@ -42,6 +45,20 @@ coefficient (default 2). Higher-frequency coefficients decay as
 \code{k_min > 1} excludes low-frequency components, concentrating signal power
 at shorter periods.}
 
+\item{affine_s}{Integer or NULL. Window length the affine drift cap is
+calibrated to. \code{NULL} (default) disables the affine layer, leaving
+\code{a_t = 0} and \code{b_t = 1}. Set it to the window length the series will be
+analysed at.}
+
+\item{affine_bw}{Numeric. Smoothing bandwidth of the coefficient paths, as a
+fraction of \code{n} (default 0.5). Larger values give smoother paths that
+accumulate more total drift from the same per-window budget; smaller ones
+turn more often and accumulate less.}
+
+\item{affine_cap}{Numeric. Maximum drift in \code{a_t} and \code{b_t} over any window
+of length \code{affine_s} (default 0.015), as a fraction of a series standard
+deviation for \code{a_t} and of unit slope for \code{b_t}.}
+
 \item{seed}{Integer or NULL. RNG seed for reproducibility.}
 
 \item{...}{Additional arguments passed to the coupling weight generator when
@@ -65,9 +82,15 @@ noise autocorrelation, which is why the smooth shape is the default.}
 A list with:
 \describe{
 \item{x1}{Numeric vector of length \code{n}. First output series.}
-\item{x2}{Numeric vector of length \code{n}. Second output series.}
-\item{x_mean}{Numeric vector of length \code{n}. Shared mean trend.}
+\item{x2}{Numeric vector of length \code{n}. Second output series, after the
+affine layer if one was applied.}
+\item{x_mean}{Numeric vector of length \code{n}. Shared mean trend of the base
+trends, before any affine layer.}
 \item{w}{Numeric vector of length \code{n}. Coupling weight used.}
+\item{a}{Numeric vector of length \code{n}. Realized affine intercept, all
+zero when the layer is disabled.}
+\item{b}{Numeric vector of length \code{n}. Realized affine gradient, all one
+when the layer is disabled.}
 }
 }
 \description{
@@ -78,6 +101,15 @@ separation), \code{w = 1} means fully coupled (both series track their shared
 mean). The output is rescaled so that \verb{||x1 - x2||_2 = d} exactly.
 }
 \details{
+An optional affine layer may then be applied to the second series,
+\code{x2 <- a_t + b_t * x2}, with \code{a_t} and \code{b_t} drifting slowly enough that they
+are near constant within any window of length \code{affine_s}. Local affine
+similarity constrains the coefficients only within a window, so capping the
+per-window increment leaves them free to accumulate across the series: the
+null still holds everywhere, while windows far apart see genuinely different
+maps. The layer is applied after \code{d} has been imposed, so \code{d} continues to
+operate on the base trends exactly as it does without it.
+
 The coupling weight can be specified in three ways:
 \enumerate{
 \item \strong{Named method} (\code{method}): one of \code{"dist"} (static separation,
@@ -100,6 +132,10 @@ tr <- sim_trends(500, d = 2, method = "smooth", bw = 50, coupling = 0.8)
 # Custom coupling weight vector
 w_custom <- rep(c(0, 1), each = 250)
 tr <- sim_trends(500, d = 2, w = w_custom)
+
+# Locally affine-similar pair: identical up to a slowly drifting map
+tr <- sim_trends(2500, d = 0, method = "smooth", affine_s = 100)
+range(tr$b)
 
 }
 \references{

@@ -6,6 +6,15 @@
 #' separation), `w = 1` means fully coupled (both series track their shared
 #' mean). The output is rescaled so that `||x1 - x2||_2 = d` exactly.
 #'
+#' An optional affine layer may then be applied to the second series,
+#' `x2 <- a_t + b_t * x2`, with `a_t` and `b_t` drifting slowly enough that they
+#' are near constant within any window of length `affine_s`. Local affine
+#' similarity constrains the coefficients only within a window, so capping the
+#' per-window increment leaves them free to accumulate across the series: the
+#' null still holds everywhere, while windows far apart see genuinely different
+#' maps. The layer is applied after `d` has been imposed, so `d` continues to
+#' operate on the base trends exactly as it does without it.
+#'
 #' The coupling weight can be specified in three ways:
 #' \enumerate{
 #'   \item **Named method** (`method`): one of `"dist"` (static separation,
@@ -34,6 +43,17 @@
 #' @param k_min Integer. Minimum harmonic index to include (default 1). Setting
 #'   `k_min > 1` excludes low-frequency components, concentrating signal power
 #'   at shorter periods.
+#' @param affine_s Integer or NULL. Window length the affine drift cap is
+#'   calibrated to. `NULL` (default) disables the affine layer, leaving
+#'   `a_t = 0` and `b_t = 1`. Set it to the window length the series will be
+#'   analysed at.
+#' @param affine_bw Numeric. Smoothing bandwidth of the coefficient paths, as a
+#'   fraction of `n` (default 0.5). Larger values give smoother paths that
+#'   accumulate more total drift from the same per-window budget; smaller ones
+#'   turn more often and accumulate less.
+#' @param affine_cap Numeric. Maximum drift in `a_t` and `b_t` over any window
+#'   of length `affine_s` (default 0.015), as a fraction of a series standard
+#'   deviation for `a_t` and of unit slope for `b_t`.
 #' @param seed Integer or NULL. RNG seed for reproducibility.
 #' @param ... Additional arguments passed to the coupling weight generator when
 #'   using a named `method`:
@@ -55,9 +75,15 @@
 #' @return A list with:
 #'   \describe{
 #'     \item{x1}{Numeric vector of length `n`. First output series.}
-#'     \item{x2}{Numeric vector of length `n`. Second output series.}
-#'     \item{x_mean}{Numeric vector of length `n`. Shared mean trend.}
+#'     \item{x2}{Numeric vector of length `n`. Second output series, after the
+#'       affine layer if one was applied.}
+#'     \item{x_mean}{Numeric vector of length `n`. Shared mean trend of the base
+#'       trends, before any affine layer.}
 #'     \item{w}{Numeric vector of length `n`. Coupling weight used.}
+#'     \item{a}{Numeric vector of length `n`. Realized affine intercept, all
+#'       zero when the layer is disabled.}
+#'     \item{b}{Numeric vector of length `n`. Realized affine gradient, all one
+#'       when the layer is disabled.}
 #'   }
 #'
 #' @examples
@@ -71,23 +97,37 @@
 #' w_custom <- rep(c(0, 1), each = 250)
 #' tr <- sim_trends(500, d = 2, w = w_custom)
 #'
+#' # Locally affine-similar pair: identical up to a slowly drifting map
+#' tr <- sim_trends(2500, d = 0, method = "smooth", affine_s = 100)
+#' range(tr$b)
+#'
 #' @references
 #' Hall, P. and Van Keilegom, I. (2003). Using difference-based methods for
 #' inference in nonparametric regression with time series errors. \emph{Journal
 #' of the Royal Statistical Society Series B}, 65(2), 443--456.
 #'
 #' @export
-sim_trends <- function(n      = 500,
-                       d      = 1,
-                       method = c("dist", "smooth", "cross", "rate"),
-                       w      = NULL,
-                       nb     = 25,
-                       sd0    = 2,
-                       p      = 2.5,
-                       k_min  = 1L,
-                       seed   = NULL,
+sim_trends <- function(n          = 500,
+                       d          = 1,
+                       method     = c("dist", "smooth", "cross", "rate"),
+                       w          = NULL,
+                       nb         = 25,
+                       sd0        = 2,
+                       p          = 2.5,
+                       k_min      = 1L,
+                       affine_s   = NULL,
+                       affine_bw  = 0.5,
+                       affine_cap = 0.015,
+                       seed       = NULL,
                        ...) {
   if ((nb %% 2) == 0) stop("`nb` must be odd.")
+  if (!is.null(affine_s)) {
+    affine_s <- as.integer(affine_s)
+    if (is.na(affine_s) || affine_s < 2L || affine_s > n)
+      stop("`affine_s` must be between 2 and `n` (", n, ").")
+    if (affine_bw <= 0) stop("`affine_bw` must be positive.")
+    if (affine_cap < 0) stop("`affine_cap` must be non-negative.")
+  }
 
   # Resolve coupling weight
   if (is.null(w)) {
@@ -111,5 +151,18 @@ sim_trends <- function(n      = 500,
                               p = p, k_min = k_min, seed = seed)
 
   # Mix and rescale
-  .apply_w(basis$mu1, basis$mu2, basis$x_mean, w, d)
+  out <- .apply_w(basis$mu1, basis$mu2, basis$x_mean, w, d)
+
+  # Affine layer last, so `d` is imposed on the base trends either way.
+  if (is.null(affine_s)) {
+    out$a <- rep(0, n)
+    out$b <- rep(1, n)
+  } else {
+    af     <- .apply_affine(out$x1, out$x2, s = affine_s,
+                            bw = affine_bw, cap = affine_cap)
+    out$x2 <- af$x2
+    out$a  <- af$a
+    out$b  <- af$b
+  }
+  out
 }
