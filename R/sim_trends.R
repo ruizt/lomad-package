@@ -13,7 +13,10 @@
 #' per-window increment leaves them free to accumulate across the series: the
 #' null still holds everywhere, while windows far apart see genuinely different
 #' maps. The layer is applied after `d` has been imposed, so `d` continues to
-#' operate on the base trends exactly as it does without it.
+#' operate on the base trends exactly as it does without it. The coefficients
+#' can also be supplied outright via `affine_a` and `affine_b`, which draws no
+#' random numbers and so leaves any seed behaving as it did before the layer
+#' existed.
 #'
 #' The coupling weight can be specified in three ways:
 #' \enumerate{
@@ -43,17 +46,27 @@
 #' @param k_min Integer. Minimum harmonic index to include (default 1). Setting
 #'   `k_min > 1` excludes low-frequency components, concentrating signal power
 #'   at shorter periods.
+#' @param affine_a,affine_b Affine coefficients supplied directly: a numeric
+#'   vector of length `n`, a function `f(n) -> numeric(n)`, or `NULL`
+#'   (default). Supplying either one overrides `affine_s` and takes the
+#'   coefficients literally, on the scale of the data. Whichever is `NULL`
+#'   falls back to its identity value (`0` for `affine_a`, `1` for
+#'   `affine_b`). Nothing is drawn in this case, so a fixed map applied to a
+#'   seed predating these arguments is recovered exactly: `affine_a = rep(0, n)`
+#'   with `affine_b = rep(2, n)` reproduces `x2 <- 2 * x2`.
 #' @param affine_s Integer or NULL. Window length the affine drift cap is
-#'   calibrated to. `NULL` (default) disables the affine layer, leaving
-#'   `a_t = 0` and `b_t = 1`. Set it to the window length the series will be
-#'   analysed at.
+#'   calibrated to, when the coefficients are generated rather than supplied.
+#'   `NULL` (default) disables the affine layer, leaving `a_t = 0` and
+#'   `b_t = 1`. Set it to the window length the series will be analysed at.
 #' @param affine_bw Numeric. Smoothing bandwidth of the coefficient paths, as a
 #'   fraction of `n` (default 0.5). Larger values give smoother paths that
 #'   accumulate more total drift from the same per-window budget; smaller ones
 #'   turn more often and accumulate less.
 #' @param affine_cap Numeric. Maximum drift in `a_t` and `b_t` over any window
 #'   of length `affine_s` (default 0.015), as a fraction of a series standard
-#'   deviation for `a_t` and of unit slope for `b_t`.
+#'   deviation for `a_t` and of unit slope for `b_t`. `0` gives a drift-free
+#'   layer, identical in output and in RNG consumption to leaving `affine_s`
+#'   unset, so a sweep can carry the no-drift arm as one more cap value.
 #' @param seed Integer or NULL. RNG seed for reproducibility.
 #' @param ... Additional arguments passed to the coupling weight generator when
 #'   using a named `method`:
@@ -101,6 +114,9 @@
 #' tr <- sim_trends(2500, d = 0, method = "smooth", affine_s = 100)
 #' range(tr$b)
 #'
+#' # A fixed map, supplied rather than generated
+#' tr <- sim_trends(500, d = 0, affine_b = rep(2, 500))
+#'
 #' @references
 #' Hall, P. and Van Keilegom, I. (2003). Using difference-based methods for
 #' inference in nonparametric regression with time series errors. \emph{Journal
@@ -115,18 +131,30 @@ sim_trends <- function(n          = 500,
                        sd0        = 2,
                        p          = 2.5,
                        k_min      = 1L,
+                       affine_a   = NULL,
+                       affine_b   = NULL,
                        affine_s   = NULL,
                        affine_bw  = 0.5,
                        affine_cap = 0.015,
                        seed       = NULL,
                        ...) {
   if ((nb %% 2) == 0) stop("`nb` must be odd.")
+
+  given <- !is.null(affine_a) || !is.null(affine_b)
   if (!is.null(affine_s)) {
     affine_s <- as.integer(affine_s)
     if (is.na(affine_s) || affine_s < 2L || affine_s > n)
       stop("`affine_s` must be between 2 and `n` (", n, ").")
     if (affine_bw <= 0) stop("`affine_bw` must be positive.")
     if (affine_cap < 0) stop("`affine_cap` must be non-negative.")
+  }
+  resolve_coef <- function(x, default, nm) {
+    if (is.null(x)) return(rep(default, n))
+    if (is.function(x)) x <- x(n)
+    if (!is.numeric(x) || length(x) != n)
+      stop("`", nm, "` must be numeric of length `n` (", n, "), got ",
+           length(x), ".")
+    x
   }
 
   # Resolve coupling weight
@@ -154,7 +182,14 @@ sim_trends <- function(n          = 500,
   out <- .apply_w(basis$mu1, basis$mu2, basis$x_mean, w, d)
 
   # Affine layer last, so `d` is imposed on the base trends either way.
-  if (is.null(affine_s)) {
+  #
+  # Supplied coefficients draw nothing, which is what lets a fixed map be
+  # recovered from a seed that predates this argument.
+  if (given) {
+    out$a <- resolve_coef(affine_a, 0, "affine_a")
+    out$b <- resolve_coef(affine_b, 1, "affine_b")
+    out$x2 <- out$a + out$b * out$x2
+  } else if (is.null(affine_s)) {
     out$a <- rep(0, n)
     out$b <- rep(1, n)
   } else {

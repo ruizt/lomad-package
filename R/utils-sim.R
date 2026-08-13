@@ -225,6 +225,9 @@
 # close to a single arc, and by bw = n/10 it turns often enough to lose three
 # quarters of the reachable range.
 .make_affine_walk <- function(n, s, bw = 0.5, cap = 0.015) {
+  # Short-circuit rather than scaling the walk to zero, so that cap = 0 draws
+  # nothing and leaves the seed behaving as it does with the layer switched off.
+  if (cap == 0) return(rep(0, n))
   z  <- cumsum(stats::rnorm(n))
   z  <- stats::ksmooth(seq_len(n), z, kernel = "normal",
                        bandwidth = bw * n, x.points = seq_len(n))$y

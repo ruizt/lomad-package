@@ -30,6 +30,12 @@ signal variance, and the shared trend is gone from the API.
   to act on the base trends as before, and is off by default. The return value
   gains the realized `a` and `b`.
 
+  The coefficients can instead be supplied outright via `affine_a` and
+  `affine_b`, and `affine_cap = 0` gives a drift-free layer. Neither draws any
+  random numbers, so both leave a seed behaving exactly as it did before this
+  argument existed: `affine_a = rep(0, n)` with `affine_b = rep(2, n)`
+  reproduces a fixed `x2 <- 2 * x2` bit for bit.
+
 ## Changed
 
 * `estimate_ar1_noise()` estimates noise from per-series residuals rather than

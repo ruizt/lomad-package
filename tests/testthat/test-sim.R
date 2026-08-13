@@ -257,3 +257,64 @@ test_that(".compute_delta: window convention matches compute_tau_sq", {
   expect_true(all(is.finite(d[40:200])))
   expect_length(d, 200)
 })
+
+test_that("sim_trends: supplied coefficients recover a fixed pre-existing map", {
+  # The validation study builds its pair as trend2 <- 2 * tr$x1 outside the
+  # package. Supplying the coefficients must reproduce that bit for bit, which
+  # requires drawing nothing.
+  n <- 400
+  base <- sim_trends(n, d = 0, nb = 25, sd0 = 50, p = 1.5, seed = 5381)
+  got  <- sim_trends(n, d = 0, nb = 25, sd0 = 50, p = 1.5, seed = 5381,
+                     affine_a = rep(0, n), affine_b = rep(2, n))
+  expect_identical(got$x1, base$x1)
+  expect_equal(got$x2, 2 * base$x1)
+  expect_equal(got$b, rep(2, n))
+})
+
+test_that("sim_trends: supplied coefficients consume no RNG", {
+  n <- 300
+  set.seed(77); a <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5)
+  set.seed(77); b <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5,
+                                affine_b = rep(3, n))
+  expect_identical(a$x1, b$x1)
+  expect_equal(b$x2, 3 * a$x2)
+  # the RNG stream is left in the same place either way
+  set.seed(77); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5))
+  r1 <- runif(1)
+  set.seed(77); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5,
+                                     affine_b = rep(3, n)))
+  expect_identical(runif(1), r1)
+})
+
+test_that("sim_trends: supplied coefficients override affine_s", {
+  n <- 300
+  tr <- sim_trends(n, d = 0, seed = 8, affine_s = 60, affine_b = rep(2, n))
+  expect_equal(tr$b, rep(2, n))
+  expect_equal(tr$a, rep(0, n))
+})
+
+test_that("sim_trends: affine coefficients accept functions and validate length", {
+  n <- 200
+  tr <- sim_trends(n, d = 0, seed = 8, affine_b = function(k) rep(1.5, k))
+  expect_equal(tr$b, rep(1.5, n))
+  expect_error(sim_trends(n, d = 0, affine_b = rep(2, 10)), "length")
+  expect_error(sim_trends(n, d = 0, affine_a = "x"), "numeric")
+})
+
+test_that("sim_trends: affine_cap = 0 is a drift-free layer that draws nothing", {
+  n <- 300
+  set.seed(5); off  <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9)
+  set.seed(5); zero <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9,
+                                  affine_s = 60, affine_cap = 0)
+  expect_identical(off$x1, zero$x1)
+  expect_identical(off$x2, zero$x2)
+  expect_equal(zero$a, rep(0, n))
+  expect_equal(zero$b, rep(1, n))
+
+  # and the RNG stream is left where the layer-off call leaves it
+  set.seed(5); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9))
+  r1 <- runif(1)
+  set.seed(5); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9,
+                                    affine_s = 60, affine_cap = 0))
+  expect_identical(runif(1), r1)
+})

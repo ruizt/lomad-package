@@ -13,6 +13,8 @@ sim_trends(
   sd0 = 2,
   p = 2.5,
   k_min = 1L,
+  affine_a = NULL,
+  affine_b = NULL,
   affine_s = NULL,
   affine_bw = 0.5,
   affine_cap = 0.015,
@@ -45,10 +47,19 @@ coefficient (default 2). Higher-frequency coefficients decay as
 \code{k_min > 1} excludes low-frequency components, concentrating signal power
 at shorter periods.}
 
+\item{affine_a, affine_b}{Affine coefficients supplied directly: a numeric
+vector of length \code{n}, a function \code{f(n) -> numeric(n)}, or \code{NULL}
+(default). Supplying either one overrides \code{affine_s} and takes the
+coefficients literally, on the scale of the data. Whichever is \code{NULL}
+falls back to its identity value (\code{0} for \code{affine_a}, \code{1} for
+\code{affine_b}). Nothing is drawn in this case, so a fixed map applied to a
+seed predating these arguments is recovered exactly: \code{affine_a = rep(0, n)}
+with \code{affine_b = rep(2, n)} reproduces \code{x2 <- 2 * x2}.}
+
 \item{affine_s}{Integer or NULL. Window length the affine drift cap is
-calibrated to. \code{NULL} (default) disables the affine layer, leaving
-\code{a_t = 0} and \code{b_t = 1}. Set it to the window length the series will be
-analysed at.}
+calibrated to, when the coefficients are generated rather than supplied.
+\code{NULL} (default) disables the affine layer, leaving \code{a_t = 0} and
+\code{b_t = 1}. Set it to the window length the series will be analysed at.}
 
 \item{affine_bw}{Numeric. Smoothing bandwidth of the coefficient paths, as a
 fraction of \code{n} (default 0.5). Larger values give smoother paths that
@@ -57,7 +68,9 @@ turn more often and accumulate less.}
 
 \item{affine_cap}{Numeric. Maximum drift in \code{a_t} and \code{b_t} over any window
 of length \code{affine_s} (default 0.015), as a fraction of a series standard
-deviation for \code{a_t} and of unit slope for \code{b_t}.}
+deviation for \code{a_t} and of unit slope for \code{b_t}. \code{0} gives a drift-free
+layer, identical in output and in RNG consumption to leaving \code{affine_s}
+unset, so a sweep can carry the no-drift arm as one more cap value.}
 
 \item{seed}{Integer or NULL. RNG seed for reproducibility.}
 
@@ -108,7 +121,10 @@ similarity constrains the coefficients only within a window, so capping the
 per-window increment leaves them free to accumulate across the series: the
 null still holds everywhere, while windows far apart see genuinely different
 maps. The layer is applied after \code{d} has been imposed, so \code{d} continues to
-operate on the base trends exactly as it does without it.
+operate on the base trends exactly as it does without it. The coefficients
+can also be supplied outright via \code{affine_a} and \code{affine_b}, which draws no
+random numbers and so leaves any seed behaving as it did before the layer
+existed.
 
 The coupling weight can be specified in three ways:
 \enumerate{
@@ -136,6 +152,9 @@ tr <- sim_trends(500, d = 2, w = w_custom)
 # Locally affine-similar pair: identical up to a slowly drifting map
 tr <- sim_trends(2500, d = 0, method = "smooth", affine_s = 100)
 range(tr$b)
+
+# A fixed map, supplied rather than generated
+tr <- sim_trends(500, d = 0, affine_b = rep(2, 500))
 
 }
 \references{
