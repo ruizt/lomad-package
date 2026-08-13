@@ -34,7 +34,7 @@
 #' @seealso [lomad_fit()], [lomad()]
 #'
 #' @examples
-#' tr  <- sim_trends(500, d = 1.5, method = "smooth", bw = 50, seed = 101)
+#' tr  <- sim_trends(500, d = 1.5, method = "rs", bw = 50, seed = 101)
 #' sim <- suppressMessages(
 #'   sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 102))
 #' fit <- lomad_fit(sim$y1, sim$y2, h = 5, s = 125)

@@ -26,7 +26,7 @@ Returns the combined fit and test results.
 }
 \examples{
 # A decoupled scenario: trends separate in localized episodes
-tr  <- sim_trends(500, d = 1.5, method = "smooth", bw = 50, seed = 101)
+tr  <- sim_trends(500, d = 1.5, method = "rs", bw = 50, seed = 101)
 sim <- suppressMessages(
   sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 102))
 out <- lomad(sim$y1, sim$y2, h = 5, s = 125)

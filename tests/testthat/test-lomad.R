@@ -16,7 +16,7 @@ make_null_data <- function(seed = 6247) {
 # the scenario the vignette builds; it is generated here rather than shipped,
 # so the package carries no simulated dataset.
 make_decoupled_data <- function(seed = 101L) {
-  tr <- sim_trends(n = 500, d = 1.5, method = "smooth", bw = 50, seed = seed)
+  tr <- sim_trends(n = 500, d = 1.5, method = "rs", bw = 50, seed = seed)
   suppressMessages(
     sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5,
                    seed = seed + 1L)

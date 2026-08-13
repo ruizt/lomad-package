@@ -50,7 +50,7 @@ transparent: every parameter of the simulation is visible.
 
 ```{r data}
 make_scenario <- function(d, seed = 101) {
-  tr  <- sim_trends(n = 500, d = d, method = "smooth", bw = 50, seed = seed)
+  tr  <- sim_trends(n = 500, d = d, method = "rs", bw = 50, seed = seed)
   sim <- sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5,
                         seed = seed + 1)
   data.frame(t = seq_len(500), y1 = sim$y1, y2 = sim$y2,
@@ -357,15 +357,19 @@ method would see *your* problem — a separation of a given size, at your noise
 level and series length — build the scenario yourself. This is also how the
 accompanying paper's simulation studies are constructed.
 
-`sim_trends()` generates a pair of trends at a controlled $L^2$ separation
-$d$. How that separation is distributed over time is set by `method`:
+`sim_trends()` generates a pair of trends whose separation scales with $d$.
+How that separation is distributed over time is set by `method`:
 
 | `method` | Separation pattern |
 |---|---|
 | `"dist"` | unstructured — the trends differ everywhere, with no episode structure |
-| `"rate"` | separation concentrated at evenly spaced events, at rate `rate` |
-| `"smooth"` | episodes at irregular times, trends pushed apart symmetrically |
-| `"cross"` | as `"smooth"`, but the trends may cross rather than only diverge |
+| `"fr"` | fixed rate: separation concentrated at evenly spaced events, at rate `rate` |
+| `"rs"` | episodes at irregular times, trends pushed apart symmetrically |
+| `"rm"` | as `"rs"`, but the trends may cross rather than only diverge |
+
+Because the structures distribute separation differently in time, the same $d$
+does not give the same local separation across them. Use `.compute_delta()` for
+the realized quantity.
 
 The structured methods work through a *coupling weight* $w_t$: the trends sit
 on top of each other where $w_t \approx 1$ and separate as it falls. Plotting
@@ -374,9 +378,9 @@ something to find.
 
 ```{r sim-structures, fig.height = 6}
 op <- par(mfrow = c(3, 2), mar = c(3, 4, 2, 1))
-for (m in c("rate", "smooth", "cross")) {
+for (m in c("fr", "rs", "rm")) {
   args <- list(n = 500, d = 1.5, method = m, seed = 6183)
-  if (m == "rate") args$rate <- 0.01 else args$bw <- 50
+  if (m == "fr") args$rate <- 0.01 else args$bw <- 50
   tr <- do.call(sim_trends, args)
 
   plot(tr$x1, type = "l", col = "steelblue", lwd = 2, ylab = expression(nu),
@@ -395,7 +399,7 @@ ratio hits a target at a given smoothing bandwidth — which is what makes runs
 comparable across scenarios rather than depending on the trend's amplitude:
 
 ```{r sim-noise}
-tr  <- sim_trends(n = 500, d = 1.5, method = "smooth", bw = 50, seed = 6183)
+tr  <- sim_trends(n = 500, d = 1.5, method = "rs", bw = 50, seed = 6183)
 sim <- sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 6184)
 ```
 

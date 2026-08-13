@@ -83,7 +83,7 @@ devtools::load_all()
 library(lomad)
 
 # Simulate paired trends with controlled L² separation
-trends <- sim_trends(n = 500, d = 2, method = "smooth", bw = 50, seed = 1)
+trends <- sim_trends(n = 500, d = 2, method = "rs", bw = 50, seed = 1)
 
 # Add calibrated AR(1) noise at target SNR
 sim <- sim_noise_pair(trends, h = 10, lambda_target = 1.5,

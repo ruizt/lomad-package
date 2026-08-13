@@ -17,6 +17,20 @@ signal variance, and the shared trend is gone from the API.
 
 * `lomad_plot()` no longer draws the shared trend.
 
+* `sim_trends()` renames its structured methods to match the paper:
+  `"smooth"` is now `"rs"`, `"cross"` is now `"rm"`, and `"rate"` is now
+  `"fr"`. `"dist"` is unchanged. The old names error rather than warn.
+
+* `sim_trends()` no longer rescales the mixed trends so that
+  `||x1 - x2|| == d`. `d` now scales the distinct component against the shared
+  mean, and separation is linear in it. Normalising the total distance divided
+  by `||(1 - w)(mu1 - mu2)||`, which is small for any structure whose
+  separation is concentrated in time -- most of all `fr` -- so it amplified
+  exactly those structures, by a factor that grew with series length. The
+  realized local separation the study reports is scale invariant, so the
+  normalisation was not pinning it in any case. A given `d` produces different
+  separations than it did in 0.0.1.
+
 ## New
 
 * `lomad_fit()` gains `min_lambda`, defaulting to `0`, and returns `testable`,

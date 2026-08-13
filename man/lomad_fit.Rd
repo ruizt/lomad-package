@@ -75,7 +75,7 @@ and \eqn{V_t}.
 }
 \examples{
 # Coupled scenario: the null model holds everywhere, so R_t tracks rho_t
-tr  <- sim_trends(500, d = 0, method = "smooth", bw = 50, seed = 101)
+tr  <- sim_trends(500, d = 0, method = "rs", bw = 50, seed = 101)
 sim <- suppressMessages(
   sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 102))
 fit <- lomad_fit(sim$y1, sim$y2, h = 5, s = 125)

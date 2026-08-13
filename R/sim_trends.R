@@ -1,10 +1,11 @@
 #' Simulate a pair of Fourier-basis trend series with controlled separation
 #'
-#' Generates two time series from a shared Fourier basis with a target L2
-#' distance `d`. The coupling weight `w` controls the time-varying mixing
-#' between the two underlying trends: `w = 0` means fully decoupled (maximum
-#' separation), `w = 1` means fully coupled (both series track their shared
-#' mean). The output is rescaled so that `||x1 - x2||_2 = d` exactly.
+#' Generates two time series from a shared Fourier basis. The coupling weight
+#' `w` controls the time-varying mixing between the two underlying trends:
+#' `w = 0` means fully decoupled (maximum separation), `w = 1` means fully
+#' coupled (both series track their shared mean). `d` scales the distinct
+#' component against that shared mean, so separation grows linearly in `d`
+#' while the coupling profile is left as the structure produced it.
 #'
 #' An optional affine layer may then be applied to the second series,
 #' `x2 <- a_t + b_t * x2`, with `a_t` and `b_t` drifting slowly enough that they
@@ -21,8 +22,8 @@
 #' The coupling weight can be specified in three ways:
 #' \enumerate{
 #'   \item **Named method** (`method`): one of `"dist"` (static separation,
-#'     default), `"smooth"` (stochastic repulsion), `"cross"` (stochastic
-#'     crossing), or `"rate"` (periodic event-based decoupling). Method-specific
+#'     default), `"rs"` (stochastic repulsion), `"rm"` (stochastic crossing),
+#'     or `"fr"` (fixed-rate, event-based decoupling). Method-specific
 #'     parameters are passed via `...`.
 #'   \item **Numeric vector** (`w`): a precomputed coupling weight of length
 #'     `n`, overriding `method`.
@@ -31,10 +32,13 @@
 #' }
 #'
 #' @param n Integer. Length of the output series (default 500).
-#' @param d Numeric. Target L2 distance between the two output series
-#'   (default 1).
+#' @param d Numeric. Amplitude of the distinct component relative to the shared
+#'   mean trend (default 1). Separation is linear in `d`, but `d` is not the
+#'   realized separation: how much local separation a given `d` produces
+#'   depends on the coupling structure and on the window it is measured over.
+#'   The realized quantity is what the study reports.
 #' @param method Character. Coupling method when `w` is not supplied. One of
-#'   `"dist"` (default), `"smooth"`, `"cross"`, or `"rate"`.
+#'   `"dist"` (default), `"rs"`, `"rm"`, or `"fr"`.
 #' @param w Coupling weight: a numeric vector of length `n`, a function
 #'   `f(n) -> numeric(n)`, or `NULL` (default, uses `method`).
 #' @param nb Integer. Number of Fourier basis functions (must be odd,
@@ -71,11 +75,11 @@
 #' @param ... Additional arguments passed to the coupling weight generator when
 #'   using a named `method`:
 #'   \describe{
-#'     \item{`"smooth"`}{`bw` (bandwidth, default 50), `coupling` (fraction of
+#'     \item{`"rs"`}{`bw` (bandwidth, default 50), `coupling` (fraction of
 #'       time in coupled state, default 0.8).}
-#'     \item{`"cross"`}{`bw` (bandwidth, default 50), `coupling` (fraction of
+#'     \item{`"rm"`}{`bw` (bandwidth, default 50), `coupling` (fraction of
 #'       time near coupled state, default 0.8).}
-#'     \item{`"rate"`}{`rate` (decoupling events per unit time, default 0.01)
+#'     \item{`"fr"`}{`rate` (decoupling events per unit time, default 0.01)
 #'       and `bump`, the pulse shape: `"gaussian"` (default) or `"gamma"`.
 #'       Both place identical events at identical times and differ only in
 #'       smoothness at onset -- the gamma pulse has a corner there, the
@@ -104,14 +108,14 @@
 #' tr <- sim_trends(500, d = 2)
 #'
 #' # Named method with tuning arguments
-#' tr <- sim_trends(500, d = 2, method = "smooth", bw = 50, coupling = 0.8)
+#' tr <- sim_trends(500, d = 2, method = "rs", bw = 50, coupling = 0.8)
 #'
 #' # Custom coupling weight vector
 #' w_custom <- rep(c(0, 1), each = 250)
 #' tr <- sim_trends(500, d = 2, w = w_custom)
 #'
 #' # Locally affine-similar pair: identical up to a slowly drifting map
-#' tr <- sim_trends(2500, d = 0, method = "smooth", affine_s = 100)
+#' tr <- sim_trends(2500, d = 0, method = "rs", affine_s = 100)
 #' range(tr$b)
 #'
 #' # A fixed map, supplied rather than generated
@@ -125,7 +129,7 @@
 #' @export
 sim_trends <- function(n          = 500,
                        d          = 1,
-                       method     = c("dist", "smooth", "cross", "rate"),
+                       method     = c("dist", "rs", "rm", "fr"),
                        w          = NULL,
                        nb         = 25,
                        sd0        = 2,
@@ -161,10 +165,10 @@ sim_trends <- function(n          = 500,
   if (is.null(w)) {
     method <- match.arg(method)
     w <- switch(method,
-      dist   = rep(0, n),
-      smooth = .make_w_smooth(n, ...),
-      cross  = .make_w_cross(n, ...),
-      rate   = .make_w_rate(n, ...)
+      dist = rep(0, n),
+      rs   = .make_w_smooth(n, ...),
+      rm   = .make_w_cross(n, ...),
+      fr   = .make_w_rate(n, ...)
     )
   } else if (is.function(w)) {
     w <- w(n)

@@ -12,24 +12,26 @@ test_that("sim_trends: returns correct structure and length", {
   expect_equal(tr$b, rep(1, 200))
 })
 
-test_that("sim_trends: L2 distance equals d for all methods", {
-  for (d in c(0.5, 2, 5)) {
-    tr <- sim_trends(200, d = d, seed = 7713)
-    dist <- sqrt(sum((tr$x1 - tr$x2)^2))
-    expect_equal(dist, d, tolerance = 1e-8,
-                 label = sprintf("dist method, d = %g", d))
+test_that("sim_trends: separation is linear in d, not normalised to it", {
+  # d scales the distinct component; it is deliberately not solved for so that
+  # ||x1 - x2|| == d, which would amplify structures that decouple briefly.
+  for (m in c("dist", "rs", "rm", "fr")) {
+    args <- list(200, method = m, seed = 7713)
+    args <- c(args, if (m == "fr") list(rate = 0.02) else
+                    if (m == "dist") NULL else list(bw = 30, coupling = 0.8))
+    set.seed(2); a <- do.call(sim_trends, c(args, list(d = 1)))
+    set.seed(2); b <- do.call(sim_trends, c(args, list(d = 3)))
+    expect_equal(b$x1 - b$x2, 3 * (a$x1 - a$x2), tolerance = 1e-10,
+                 label = sprintf("linearity, method = %s", m))
+    # and the coupling profile is untouched by d
+    expect_equal(a$w, b$w, label = sprintf("w invariance, method = %s", m))
   }
+})
 
-  tr_s <- sim_trends(200, d = 2, method = "smooth", bw = 30,
-                     coupling = 0.8, seed = 7713)
-  expect_equal(sqrt(sum((tr_s$x1 - tr_s$x2)^2)), 2, tolerance = 1e-8)
-
-  tr_c <- sim_trends(200, d = 2, method = "cross", bw = 30,
-                     coupling = 0.8, seed = 7713)
-  expect_equal(sqrt(sum((tr_c$x1 - tr_c$x2)^2)), 2, tolerance = 1e-8)
-
-  tr_r <- sim_trends(200, d = 2, method = "rate", rate = 0.02, seed = 7713)
-  expect_equal(sqrt(sum((tr_r$x1 - tr_r$x2)^2)), 2, tolerance = 1e-8)
+test_that("sim_trends: d = 0 collapses both series onto the shared mean", {
+  tr <- sim_trends(200, d = 0, method = "rs", bw = 30, seed = 7713)
+  expect_equal(tr$x1, tr$x_mean)
+  expect_equal(tr$x2, tr$x_mean)
 })
 
 test_that("sim_trends: method='dist' gives w = 0", {
@@ -38,13 +40,13 @@ test_that("sim_trends: method='dist' gives w = 0", {
 })
 
 test_that("sim_trends: method='smooth' gives w in (0, 1)", {
-  tr <- sim_trends(500, d = 1, method = "smooth", bw = 50,
+  tr <- sim_trends(500, d = 1, method = "rs", bw = 50,
                    coupling = 0.8, seed = 5122)
   expect_true(all(tr$w > 0 & tr$w < 1))
 })
 
 test_that("sim_trends: method='rate' gives w in [0, 1]", {
-  tr <- sim_trends(500, d = 1, method = "rate", rate = 0.01, seed = 5122)
+  tr <- sim_trends(500, d = 1, method = "fr", rate = 0.01, seed = 5122)
   expect_true(all(tr$w >= 0 & tr$w <= 1))
 })
 
@@ -52,7 +54,9 @@ test_that("sim_trends: custom w (vector and function)", {
   w_vec <- rep(c(0, 1), each = 100)
   tr_v <- sim_trends(200, d = 2, w = w_vec, seed = 3481)
   expect_equal(tr_v$w, w_vec)
-  expect_equal(sqrt(sum((tr_v$x1 - tr_v$x2)^2)), 2, tolerance = 1e-8)
+  # w = 1 couples the pair exactly, w = 0 leaves the full distinct component
+  expect_equal(tr_v$x1[101:200], tr_v$x2[101:200])
+  expect_true(all(tr_v$x1[1:100] != tr_v$x2[1:100]))
 
   tr_f <- sim_trends(200, d = 2, w = \(n) rep(0.5, n), seed = 3481)
   expect_equal(tr_f$w, rep(0.5, 200))
@@ -181,20 +185,20 @@ test_that("the gaussian pulse leaks less through differencing", {
 })
 
 test_that("sim_trends passes `bump` through and defaults to gaussian", {
-  a <- sim_trends(600, d = 1, method = "rate", seed = 7)
-  b <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gaussian")
+  a <- sim_trends(600, d = 1, method = "fr", seed = 7)
+  b <- sim_trends(600, d = 1, method = "fr", seed = 7, bump = "gaussian")
   expect_equal(a$x1, b$x1)
-  g <- sim_trends(600, d = 1, method = "rate", seed = 7, bump = "gamma")
+  g <- sim_trends(600, d = 1, method = "fr", seed = 7, bump = "gamma")
   expect_false(isTRUE(all.equal(a$x1, g$x1)))
-  expect_equal(sqrt(sum((g$x1 - g$x2)^2)), 1, tolerance = 1e-8)
+  expect_true(all(is.finite(g$x1)) && all(is.finite(g$x2)))
 })
 
 
 # ---- affine layer ----
 
 test_that("sim_trends: affine layer leaves x1 and the base trends untouched", {
-  set.seed(1); a <- sim_trends(400, d = 1, method = "smooth", bw = 30, seed = 22)
-  set.seed(1); b <- sim_trends(400, d = 1, method = "smooth", bw = 30, seed = 22,
+  set.seed(1); a <- sim_trends(400, d = 1, method = "rs", bw = 30, seed = 22)
+  set.seed(1); b <- sim_trends(400, d = 1, method = "rs", bw = 30, seed = 22,
                                affine_s = 80)
   expect_identical(a$x1, b$x1)
   expect_identical(a$w, b$w)
@@ -202,7 +206,7 @@ test_that("sim_trends: affine layer leaves x1 and the base trends untouched", {
 })
 
 test_that("sim_trends: affine drift respects the per-window cap", {
-  tr <- sim_trends(2000, d = 0, method = "smooth", bw = 50, seed = 31,
+  tr <- sim_trends(2000, d = 0, method = "rs", bw = 50, seed = 31,
                    affine_s = 100, affine_cap = 0.02)
   expect_equal(max(abs(diff(tr$b, lag = 100))), 0.02, tolerance = 1e-8)
   expect_equal(max(abs(diff(tr$a, lag = 100))), 0.02 * sd(tr$x1),
@@ -273,15 +277,15 @@ test_that("sim_trends: supplied coefficients recover a fixed pre-existing map", 
 
 test_that("sim_trends: supplied coefficients consume no RNG", {
   n <- 300
-  set.seed(77); a <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5)
-  set.seed(77); b <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5,
+  set.seed(77); a <- sim_trends(n, d = 1, method = "rs", bw = 30, seed = 5)
+  set.seed(77); b <- sim_trends(n, d = 1, method = "rs", bw = 30, seed = 5,
                                 affine_b = rep(3, n))
   expect_identical(a$x1, b$x1)
   expect_equal(b$x2, 3 * a$x2)
   # the RNG stream is left in the same place either way
-  set.seed(77); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5))
+  set.seed(77); invisible(sim_trends(n, d = 1, method = "rs", bw = 30, seed = 5))
   r1 <- runif(1)
-  set.seed(77); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 5,
+  set.seed(77); invisible(sim_trends(n, d = 1, method = "rs", bw = 30, seed = 5,
                                      affine_b = rep(3, n)))
   expect_identical(runif(1), r1)
 })
@@ -303,8 +307,8 @@ test_that("sim_trends: affine coefficients accept functions and validate length"
 
 test_that("sim_trends: affine_cap = 0 is a drift-free layer that draws nothing", {
   n <- 300
-  set.seed(5); off  <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9)
-  set.seed(5); zero <- sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9,
+  set.seed(5); off  <- sim_trends(n, d = 1, method = "rs", bw = 30, seed = 9)
+  set.seed(5); zero <- sim_trends(n, d = 1, method = "rs", bw = 30, seed = 9,
                                   affine_s = 60, affine_cap = 0)
   expect_identical(off$x1, zero$x1)
   expect_identical(off$x2, zero$x2)
@@ -312,9 +316,9 @@ test_that("sim_trends: affine_cap = 0 is a drift-free layer that draws nothing",
   expect_equal(zero$b, rep(1, n))
 
   # and the RNG stream is left where the layer-off call leaves it
-  set.seed(5); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9))
+  set.seed(5); invisible(sim_trends(n, d = 1, method = "rs", bw = 30, seed = 9))
   r1 <- runif(1)
-  set.seed(5); invisible(sim_trends(n, d = 1, method = "smooth", bw = 30, seed = 9,
+  set.seed(5); invisible(sim_trends(n, d = 1, method = "rs", bw = 30, seed = 9,
                                     affine_s = 60, affine_cap = 0))
   expect_identical(runif(1), r1)
 })

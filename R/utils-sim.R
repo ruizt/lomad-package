@@ -188,20 +188,24 @@
 
 # ---- Mixing and rescaling -----------------------------------------------
 
-# Mix mu1, mu2 via coupling weight w and rescale to target distance d.
+# Mix mu1, mu2 via coupling weight w, scaling the distinct component by d.
 #
-# Mixing formula: x_i = x_mean + (1 - w) * (mu_i - x_mean)
-# Then rescale so that ||x1 - x2|| = d.
+#   x_i = x_mean + d (1 - w) (mu_i - x_mean)
+#
+# d sets the amplitude of the distinct component against the shared mean, and
+# is deliberately not solved for to make ||x1 - x2|| = d.
+#
+# Normalising the total distance would divide by ||(1 - w)(mu1 - mu2)||, which
+# is small for any structure whose separation is concentrated in time -- most
+# of all `fr`, where 1 - w is zero away from events. The scale factor then
+# blows up and amplifies exactly the structures that decouple most briefly, so
+# a common d produces separations that differ several-fold across structures.
+# The quantity the study reports is delta_t, which is local and scale
+# invariant, so pinning a global norm does not pin it in any case.
 .apply_w <- function(mu1, mu2, x_mean, w, d) {
-  x1_unit <- x_mean + (1 - w) * (mu1 - x_mean)
-  x2_unit <- x_mean + (1 - w) * (mu2 - x_mean)
-
-  r_unit <- sqrt(sum((x1_unit - x2_unit)^2))
-  s      <- d / r_unit
-
   list(
-    x1     = x_mean + s * (x1_unit - x_mean),
-    x2     = x_mean + s * (x2_unit - x_mean),
+    x1     = x_mean + d * (1 - w) * (mu1 - x_mean),
+    x2     = x_mean + d * (1 - w) * (mu2 - x_mean),
     x_mean = x_mean,
     w      = w
   )

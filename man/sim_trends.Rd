@@ -7,7 +7,7 @@
 sim_trends(
   n = 500,
   d = 1,
-  method = c("dist", "smooth", "cross", "rate"),
+  method = c("dist", "rs", "rm", "fr"),
   w = NULL,
   nb = 25,
   sd0 = 2,
@@ -25,11 +25,14 @@ sim_trends(
 \arguments{
 \item{n}{Integer. Length of the output series (default 500).}
 
-\item{d}{Numeric. Target L2 distance between the two output series
-(default 1).}
+\item{d}{Numeric. Amplitude of the distinct component relative to the shared
+mean trend (default 1). Separation is linear in \code{d}, but \code{d} is not the
+realized separation: how much local separation a given \code{d} produces
+depends on the coupling structure and on the window it is measured over.
+The realized quantity is what the study reports.}
 
 \item{method}{Character. Coupling method when \code{w} is not supplied. One of
-\code{"dist"} (default), \code{"smooth"}, \code{"cross"}, or \code{"rate"}.}
+\code{"dist"} (default), \code{"rs"}, \code{"rm"}, or \code{"fr"}.}
 
 \item{w}{Coupling weight: a numeric vector of length \code{n}, a function
 \code{f(n) -> numeric(n)}, or \code{NULL} (default, uses \code{method}).}
@@ -77,11 +80,11 @@ unset, so a sweep can carry the no-drift arm as one more cap value.}
 \item{...}{Additional arguments passed to the coupling weight generator when
 using a named \code{method}:
 \describe{
-\item{\code{"smooth"}}{\code{bw} (bandwidth, default 50), \code{coupling} (fraction of
+\item{\code{"rs"}}{\code{bw} (bandwidth, default 50), \code{coupling} (fraction of
 time in coupled state, default 0.8).}
-\item{\code{"cross"}}{\code{bw} (bandwidth, default 50), \code{coupling} (fraction of
+\item{\code{"rm"}}{\code{bw} (bandwidth, default 50), \code{coupling} (fraction of
 time near coupled state, default 0.8).}
-\item{\code{"rate"}}{\code{rate} (decoupling events per unit time, default 0.01)
+\item{\code{"fr"}}{\code{rate} (decoupling events per unit time, default 0.01)
 and \code{bump}, the pulse shape: \code{"gaussian"} (default) or \code{"gamma"}.
 Both place identical events at identical times and differ only in
 smoothness at onset -- the gamma pulse has a corner there, the
@@ -107,11 +110,12 @@ when the layer is disabled.}
 }
 }
 \description{
-Generates two time series from a shared Fourier basis with a target L2
-distance \code{d}. The coupling weight \code{w} controls the time-varying mixing
-between the two underlying trends: \code{w = 0} means fully decoupled (maximum
-separation), \code{w = 1} means fully coupled (both series track their shared
-mean). The output is rescaled so that \verb{||x1 - x2||_2 = d} exactly.
+Generates two time series from a shared Fourier basis. The coupling weight
+\code{w} controls the time-varying mixing between the two underlying trends:
+\code{w = 0} means fully decoupled (maximum separation), \code{w = 1} means fully
+coupled (both series track their shared mean). \code{d} scales the distinct
+component against that shared mean, so separation grows linearly in \code{d}
+while the coupling profile is left as the structure produced it.
 }
 \details{
 An optional affine layer may then be applied to the second series,
@@ -129,8 +133,8 @@ existed.
 The coupling weight can be specified in three ways:
 \enumerate{
 \item \strong{Named method} (\code{method}): one of \code{"dist"} (static separation,
-default), \code{"smooth"} (stochastic repulsion), \code{"cross"} (stochastic
-crossing), or \code{"rate"} (periodic event-based decoupling). Method-specific
+default), \code{"rs"} (stochastic repulsion), \code{"rm"} (stochastic crossing),
+or \code{"fr"} (fixed-rate, event-based decoupling). Method-specific
 parameters are passed via \code{...}.
 \item \strong{Numeric vector} (\code{w}): a precomputed coupling weight of length
 \code{n}, overriding \code{method}.
@@ -143,14 +147,14 @@ length \code{n}, called at generation time.
 tr <- sim_trends(500, d = 2)
 
 # Named method with tuning arguments
-tr <- sim_trends(500, d = 2, method = "smooth", bw = 50, coupling = 0.8)
+tr <- sim_trends(500, d = 2, method = "rs", bw = 50, coupling = 0.8)
 
 # Custom coupling weight vector
 w_custom <- rep(c(0, 1), each = 250)
 tr <- sim_trends(500, d = 2, w = w_custom)
 
 # Locally affine-similar pair: identical up to a slowly drifting map
-tr <- sim_trends(2500, d = 0, method = "smooth", affine_s = 100)
+tr <- sim_trends(2500, d = 0, method = "rs", affine_s = 100)
 range(tr$b)
 
 # A fixed map, supplied rather than generated
