@@ -6,3 +6,6 @@
 ^doc$
 ^Meta$
 ^CITATION\.cff$
+^Rplots\.pdf$
+^_.*$
+^scratch$

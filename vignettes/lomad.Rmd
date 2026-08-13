@@ -27,11 +27,13 @@ windows. Given paired series following a trend-plus-noise model, the method:
 2. computes the rolling correlation $R_t$ of the smoothed series over windows
    of length $s$;
 3. compares $R_t$ pointwise against the local population correlation
-   $\rho_t$ implied by a shared-trend null model, using a CLT-based $Z$
+   $\rho_t$ implied by the null of local affine similarity, using a CLT-based $Z$
    statistic with Benjamini–Yekutieli false discovery rate control.
 
-Intuitively, a shared trend induces the highest local correlation attainable
-at the prevailing signal-to-noise ratio; genuine trend separation attenuates
+Intuitively, trends that agree up to a local affine map induce the highest
+local correlation attainable at the prevailing signal-to-noise ratio —
+correlation is invariant to shifting and rescaling either series, so a
+changing level or scale costs nothing. Genuine trend separation attenuates
 $R_t$ below that benchmark. The null quantities $\rho_t$ and $V_t$ are
 estimated from the data using a variogram-based noise fit that is robust to
 trend contamination.
@@ -41,26 +43,33 @@ truth is known, and on real estuarine monitoring data.
 
 ## Simulated example
 
-We build two scenarios from the same base trends and noise process, differing
-only in $d$, which scales how far apart the trends are pushed. In the coupled
-scenario the two trends coincide ($d = 0$), so the null hypothesis of local
-similarity holds everywhere. In the decoupled scenario the trends separate in localized episodes
-($d = 1.5$). Generating them here rather than shipping them keeps the data
-transparent: every parameter of the simulation is visible.
+We build two scenarios from the same base trends and noise process. In the
+coupled scenario the trends are related by a fixed affine map, $\nu_2 = 2\nu_1$
+— a series on an entirely different scale, which nonetheless satisfies the null
+of local similarity everywhere. In the decoupled scenario the trends separate
+in localized episodes. Generating them here rather than shipping them keeps the
+data transparent: every parameter of the simulation is visible.
 
 ```{r data}
-make_scenario <- function(d, seed = 101) {
-  tr  <- sim_trends(n = 500, d = d, method = "rs", bw = 50, seed = seed)
+make_scenario <- function(d, seed = 101, ...) {
+  tr  <- sim_trends(n = 500, d = d, method = "rs", bw = 50, seed = seed, ...)
   sim <- sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5,
                         seed = seed + 1)
   data.frame(t = seq_len(500), y1 = sim$y1, y2 = sim$y2,
              nu1 = tr$x1, nu2 = tr$x2)
 }
 
-cpl <- make_scenario(d = 0)      # coupled: null holds everywhere
+# coupled: nu2 = 2 nu1, so H_0 holds even though the scales differ twofold
+cpl <- make_scenario(d = 0, affine_b = rep(2, 500))
 dcp <- make_scenario(d = 1.5)    # decoupled: localized separation
 str(dcp)
 ```
+
+The coupled case is worth dwelling on. Its two trends are nowhere equal — one
+is twice the other — yet the test should stay silent, because correlation is
+unchanged by shifting or rescaling either series. That is what local affine
+similarity buys: the two series need not be on a common scale, or even measure
+the same thing in the same units, before they can be compared.
 
 The observed series are dominated by noise; the trends (which we know here,
 but would not in practice) are shown in black:
@@ -196,7 +205,7 @@ lomad_plot(fit_mb, tst_mb, dates = morro_bay$datetime)
 ```
 
 The test flags one sustained episode, in mid-September, in which the local
-correlation between oxygen and pH trends falls well below its shared-trend
+correlation between oxygen and pH trends falls well below its affine-similarity
 benchmark: $R_t$ reaches $0.03$ inside the flagged run while $\rho_t$ there
 sits between 0.73 and 0.85. What the test responds to is that gap, scaled by
 $\sqrt{V_t/s}$ — not the level of $R_t$ on its own. Elsewhere in the block
@@ -448,8 +457,10 @@ par(op)
 Two things to expect. Flags *trail* the onset of separation, because $R_t$ is
 computed over the trailing window $W_t$ — localization is at window
 resolution, not point resolution. And detection depends on separation relative
-to noise, not on $d$ alone: the same $d$ spread thinly over a long series is
-much harder to see than the same $d$ concentrated in one episode.
+to noise *within a window*, not on $d$: at the same $d$, a structure that
+concentrates its separation into brief episodes is far easier to see than one
+that spreads it evenly, because only the former ever makes a window locally
+dissimilar enough to detect.
 
 ## Notes
 

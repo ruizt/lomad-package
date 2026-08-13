@@ -62,7 +62,7 @@
 #' \deqn{\hat\tau^2_t = \frac{1}{s} \sum_{u \in W_t} (s_u - \bar s)^2.}
 #' Returns `NA` for positions where fewer than `s` trend values are available.
 #'
-#' @param trend Numeric vector. Estimated (or true) shared trend.
+#' @param trend Numeric vector. Estimated (or true) trend of one series.
 #' @param s Positive integer. Rolling window length (paper notation: \eqn{s}).
 #'
 #' @return Numeric vector of length `length(trend)` with `NA` for the first

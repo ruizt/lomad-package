@@ -12,8 +12,8 @@ between otherwise correlated moving averages. The method:
 1. Smooths each series with a moving average filter to isolate trends.
 2. Computes rolling window correlations on the smoothed series.
 3. Tests pointwise whether observed correlations fall below their expected
-   values under a shared-trend null, using a CLT-based test statistic with
-   Benjamini–Yekutieli FDR correction.
+   values under a null of local affine similarity, using a CLT-based test
+   statistic with Benjamini–Yekutieli FDR correction.
 
 AR(1) noise parameters are estimated via a variogram-based approach that is
 robust to trend contamination (Hall and Van Keilegom, 2003). A noise
@@ -36,7 +36,7 @@ noise.
 | `lomad_plot()` | Visualise fit and test results |
 | `estimate_trends()` | Extract trends via moving average |
 | `estimate_ar1_noise()` | Estimate AR(1) noise parameters via variogram |
-| `sim_trends()` | Generate synthetic trend pairs at controlled L² separation |
+| `sim_trends()` | Generate synthetic trend pairs, optionally locally affine similar |
 | `sim_noise_pair()` | Add calibrated ARMA noise to trend pairs |
 
 ## Installation
@@ -82,7 +82,7 @@ devtools::load_all()
 ```r
 library(lomad)
 
-# Simulate paired trends with controlled L² separation
+# Simulate paired trends; d scales how far apart they are pushed
 trends <- sim_trends(n = 500, d = 2, method = "rs", bw = 50, seed = 1)
 
 # Add calibrated AR(1) noise at target SNR

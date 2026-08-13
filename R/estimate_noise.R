@@ -1,9 +1,10 @@
 #' Estimate AR(1) noise parameters via the variogram
 #'
 #' Estimates the AR(1) coefficient and innovation variance for each series
-#' from the lag-1 and lag-2 sample variograms. Differencing annihilates a
-#' slowly varying trend, so the variogram at short lags is dominated by the
-#' noise and no trend estimate is required.
+#' separately, from the lag-1 and lag-2 sample variograms of its residuals.
+#' Differencing annihilates a slowly varying trend, so the variogram at short
+#' lags is dominated by the noise; supplying trends is nonetheless worthwhile,
+#' for the reason given below.
 #'
 #' This is a special case of the difference-based approach of
 #' Hall and Van Keilegom (2003) for the AR(1) model. For general AR(p)

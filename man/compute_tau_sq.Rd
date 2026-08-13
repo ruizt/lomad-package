@@ -7,7 +7,7 @@
 compute_tau_sq(trend, s)
 }
 \arguments{
-\item{trend}{Numeric vector. Estimated (or true) shared trend.}
+\item{trend}{Numeric vector. Estimated (or true) trend of one series.}
 
 \item{s}{Positive integer. Rolling window length (paper notation: \eqn{s}).}
 }
