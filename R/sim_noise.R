@@ -156,15 +156,23 @@ sim_noise <- function(x.state,
   lv_signal <- roll::roll_var(x_smooth_chk, width = s, center = TRUE, min_obs = s)
   lv_noise  <- roll::roll_var(e_smooth,     width = s, center = TRUE, min_obs = s)
 
+  # Guard against a near-zero denominator, relative to the calibrated noise
+  # level: an absolute floor drops every window once sigma is small, which it
+  # is whenever the local signal variance is.
   interior <- (h + floor(s / 2)):(n - floor(s / 2))
   ok        <- !is.na(lv_signal[interior]) & !is.na(lv_noise[interior]) &
-    lv_noise[interior] > 1e-5
+    lv_noise[interior] > 1e-8 * sigma^2 * var_smooth_eff
   snr_local <- lv_signal[interior][ok] / lv_noise[interior][ok]
 
   noise_var_ratio <- mean(lv_noise[interior], na.rm = TRUE) /
     (sigma^2 * var_smooth_eff)
 
   mean_snr <- mean(lv_signal[interior][ok]) / mean(lv_noise[interior][ok])
+
+  if (length(snr_local) == 0L)
+    warning("SNR diagnostic: no usable windows, so `mean_snr` is NaN and the ",
+            "calibration is unverified. The simulated series are unaffected.",
+            call. = FALSE)
 
   message(sprintf(
     "SNR target: %.2f | mean: %.2f (%+.1f%%) | noise var ratio (emp/theo): %.3f | n: %d",
