@@ -61,3 +61,13 @@ signal variance, and the shared trend is gone from the API.
   and constrains the displacement to be orthogonal to it, rescaled to equal
   norm. Both act on the base coefficient pair shared by every `method`, so a
   given `seed` produces different trends than it did in 0.0.1.
+
+## Fixed
+
+* `sim_trends()` applies `seed` before the coupling weight is drawn, not only
+  before the Fourier basis. The random `method`s (`"rs"`, `"rm"`, `"fr"`) drew
+  `w` from whatever RNG state the caller happened to be in, so output was not
+  reproducible from `seed` alone whenever `d != 0`. `d = 0` was unaffected,
+  since the mixing cancels `w`, as was any caller that set a global seed
+  immediately before calling; the coefficient draw is still seeded separately,
+  so those callers get bit-identical output to before.

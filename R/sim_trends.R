@@ -161,6 +161,15 @@ sim_trends <- function(n          = 500,
     x
   }
 
+  # `seed` is applied here as well as in .generate_coef_pair() below, because
+  # the random coupling-weight methods draw before the basis is built. Seeding
+  # only inside the basis left `w` -- and so both trends whenever `d != 0` --
+  # dependent on whatever RNG state the caller happened to be in. Seeding here
+  # too, rather than moving the call, keeps the coefficient draw on the same
+  # stream it has always used: a caller that already did set.seed(seed) before
+  # calling gets bit-identical output to before.
+  if (!is.null(seed)) set.seed(seed)
+
   # Resolve coupling weight
   if (is.null(w)) {
     method <- match.arg(method)
