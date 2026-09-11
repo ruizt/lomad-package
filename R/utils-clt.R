@@ -68,6 +68,11 @@
 #' @return Numeric vector of length `length(trend)` with `NA` for the first
 #'   `s - 1` positions.
 #'
+#' @examples
+#' tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = 4)
+#' tau_sq <- compute_tau_sq(tr$ma1, s = 60)
+#' summary(tau_sq)
+#'
 #' @export
 compute_tau_sq <- function(trend, s) {
   s <- as.integer(s)
@@ -107,6 +112,12 @@ compute_tau_sq <- function(trend, s) {
 #'
 #' @return Numeric (recycled to the length of `tau1_sq`/`tau2_sq`).
 #'
+#' @examples
+#' tau1_sq <- c(0.1, 0.5, 2)
+#' compute_rho(tau1_sq, 4 * tau1_sq, sigma1_sq = 1, sigma2_sq = 1)
+#'
+#' compute_rho(1, 4, 1, 1, r = 0.8)      # attenuated under the alternative
+#'
 #' @export
 compute_rho <- function(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq, r = 1) {
   stopifnot(sigma1_sq > 0, sigma2_sq > 0,
@@ -144,6 +155,13 @@ compute_rho <- function(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq, r = 1) {
 #' @param Q12 Numeric. \eqn{Q_{12} = \sum_{l} \gamma_1(l)\gamma_2(l)}.
 #'
 #' @return Numeric, non-negative.
+#'
+#' @examples
+#' g1 <- arma_acov(ar = 0.5, sigma2 = 1, lag_max = 50)
+#' g2 <- arma_acov(ar = 0.3, sigma2 = 1, lag_max = 50)
+#' su <- acov_sums(g1, g2)
+#' V  <- compute_V(1, 4, g1[1], g2[1], su$L1, su$L2, su$Q1, su$Q2, su$Q12)
+#' sqrt(V / 60)                          # standard error of R_t at s = 60
 #'
 #' @export
 compute_V <- function(tau1_sq, tau2_sq, sigma1_sq, sigma2_sq,

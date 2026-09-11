@@ -30,6 +30,11 @@
 #'
 #' @return Invisibly returns `NULL`. Called for its side effect (base R plot).
 #'
+#' @examples
+#' fit <- lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60)
+#' tst <- lomad_test(fit, alpha = 0.05)
+#' lomad_plot(fit, tst, dates = morro_bay$datetime)
+#'
 #' @export
 lomad_plot <- function(fit, tst, dates = NULL, alpha = 0.25,
                        band = TRUE) {

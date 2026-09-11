@@ -1,7 +1,6 @@
 ^\.git$
 ^\.Rproj\.user$
 ^.*\.Rproj$
-^README\.md$
 ^AGENTS\.md$
 ^doc$
 ^Meta$

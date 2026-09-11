@@ -29,3 +29,8 @@ Under affine similarity the two trends need not coincide, so no shared
 trend is formed.
 The first \eqn{h - 1} observations are \code{NA} due to the one-sided filter.
 }
+\examples{
+tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = 4)
+head(tr$ma1, 6)                       # first h - 1 values are NA
+
+}

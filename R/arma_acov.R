@@ -14,6 +14,11 @@
 #' @return Numeric vector of length `lag_max + 1` containing
 #'   \eqn{\gamma(0), \gamma(1), \ldots, \gamma(\text{lag\_max})}.
 #'
+#' @examples
+#' g <- arma_acov(ar = 0.5, sigma2 = 1, lag_max = 5)
+#' g
+#' 0.5^(0:5) / (1 - 0.5^2)               # AR(1) closed form
+#'
 #' @export
 arma_acov <- function(ar = numeric(0), ma = numeric(0),
                       sigma2 = 1, lag_max = 100L) {
@@ -52,6 +57,11 @@ arma_acov <- function(ar = numeric(0), ma = numeric(0),
 #'   series 1 (i.e. \eqn{Q_{12} = Q_1}).
 #'
 #' @return A named list with elements `L1`, `Q1`, `L2`, `Q2`, `Q12`.
+#'
+#' @examples
+#' g1 <- arma_acov(ar = 0.5, sigma2 = 1, lag_max = 50)
+#' g2 <- arma_acov(ar = 0.3, sigma2 = 1, lag_max = 50)
+#' acov_sums(g1, g2)
 #'
 #' @export
 acov_sums <- function(acov1, acov2 = NULL) {

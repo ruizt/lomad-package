@@ -18,6 +18,10 @@
 #'     \item{h}{Integer. Window width used.}
 #'   }
 #'
+#' @examples
+#' tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = 4)
+#' head(tr$ma1, 6)                       # first h - 1 values are NA
+#'
 #' @export
 estimate_trends <- function(y1, y2, h) {
   if (length(y1) != length(y2))

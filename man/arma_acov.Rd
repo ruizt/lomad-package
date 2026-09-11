@@ -26,3 +26,9 @@ Computes the autocovariance sequence \eqn{\gamma(0), \gamma(1), \ldots,
 \gamma(\text{lag\_max})} for a stationary ARMA(p, q) process with
 innovation variance \eqn{\sigma^2}.
 }
+\examples{
+g <- arma_acov(ar = 0.5, sigma2 = 1, lag_max = 5)
+g
+0.5^(0:5) / (1 - 0.5^2)               # AR(1) closed form
+
+}

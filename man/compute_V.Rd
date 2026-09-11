@@ -43,3 +43,11 @@ Note the cross-pairing: \eqn{\tau_2^2} multiplies the \eqn{L_1} term and
 \eqn{\mathrm{Cov}(\tilde Y_{1t}\tilde Y_{2t}, \cdot)} contributes
 \eqn{s_{1t}s_{1,t-l}\gamma_2(l) + s_{2t}s_{2,t-l}\gamma_1(l)}.
 }
+\examples{
+g1 <- arma_acov(ar = 0.5, sigma2 = 1, lag_max = 50)
+g2 <- arma_acov(ar = 0.3, sigma2 = 1, lag_max = 50)
+su <- acov_sums(g1, g2)
+V  <- compute_V(1, 4, g1[1], g2[1], su$L1, su$L2, su$Q1, su$Q2, su$Q12)
+sqrt(V / 60)                          # standard error of R_t at s = 60
+
+}

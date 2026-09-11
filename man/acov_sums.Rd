@@ -25,3 +25,9 @@ asymptotic variance formula:
       Q_{12} = \sum_{l \in \mathbb{Z}} \gamma_1(l)\,\gamma_2(l).}
 All sums are approximated by truncating at the supplied lag vectors.
 }
+\examples{
+g1 <- arma_acov(ar = 0.5, sigma2 = 1, lag_max = 50)
+g2 <- arma_acov(ar = 0.3, sigma2 = 1, lag_max = 50)
+acov_sums(g1, g2)
+
+}

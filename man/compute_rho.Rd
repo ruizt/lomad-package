@@ -35,3 +35,10 @@ which is what the test uses. Values \eqn{r < 1} give the attenuated correlation
 under the alternative, via the exact identity
 \eqn{\rho = (1 - \delta^2)^{1/2}\rho^{(0)}} with \eqn{\delta = (1-r^2)^{1/2}}.
 }
+\examples{
+tau1_sq <- c(0.1, 0.5, 2)
+compute_rho(tau1_sq, 4 * tau1_sq, sigma1_sq = 1, sigma2_sq = 1)
+
+compute_rho(1, 4, 1, 1, r = 0.8)      # attenuated under the alternative
+
+}

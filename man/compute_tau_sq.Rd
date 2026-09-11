@@ -21,3 +21,9 @@ left-aligned window \eqn{W_t = \{t - s + 1, \ldots, t\}}:
 \deqn{\hat\tau^2_t = \frac{1}{s} \sum_{u \in W_t} (s_u - \bar s)^2.}
 Returns \code{NA} for positions where fewer than \code{s} trend values are available.
 }
+\examples{
+tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = 4)
+tau_sq <- compute_tau_sq(tr$ma1, s = 60)
+summary(tau_sq)
+
+}

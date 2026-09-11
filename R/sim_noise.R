@@ -46,6 +46,13 @@
 #'
 #' @seealso [sim_noise_pair()], [sim_trends()]
 #'
+#' @examples
+#' tr  <- sim_trends(500, d = 0, method = "rs", bw = 50, seed = 101)
+#' out <- suppressMessages(
+#'   sim_noise(tr$x1, h = 5, ar.coefs = 0.5, lambda_target = 1.5, seed = 102))
+#' out$diagnostics$mean_snr
+#' out$diagnostics$noise_var_ratio       # should be near 1
+#'
 #' @export
 sim_noise <- function(x.state,
                       h,
@@ -247,6 +254,12 @@ sim_noise <- function(x.state,
 #'   }
 #'
 #' @seealso [sim_noise()], [sim_trends()]
+#'
+#' @examples
+#' tr  <- sim_trends(500, d = 0, method = "rs", bw = 50, seed = 101)
+#' sim <- suppressMessages(
+#'   sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 102))
+#' c(s1 = sim$noise$series1$mean_snr, s2 = sim$noise$series2$mean_snr)
 #'
 #' @export
 sim_noise_pair <- function(trends,

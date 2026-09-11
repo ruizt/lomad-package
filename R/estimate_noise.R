@@ -47,6 +47,13 @@
 #' of the Royal Statistical Society Series B}, 65(2), 443--456.
 #'
 #'
+#' @examples
+#' tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = 4)
+#' nz <- estimate_ar1_noise(morro_bay$o2, morro_bay$ph,
+#'                          trend1 = tr$ma1, trend2 = tr$ma2, h = 4)
+#' c(o2 = nz$series1$ar, ph = nz$series2$ar)
+#' c(o2 = nz$series1$sigma2, ph = nz$series2$sigma2)
+#'
 #' @export
 estimate_ar1_noise <- function(y1, y2, trend1 = NULL, trend2 = NULL,
                                h = NULL) {

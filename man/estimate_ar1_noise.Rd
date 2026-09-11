@@ -55,6 +55,14 @@ For AR(1) with coefficient \eqn{\phi} and innovation variance
 \eqn{\sigma^2}: \eqn{V(1) = \sigma^2 / (1 + \phi)} and
 \eqn{V(2) = \sigma^2}, giving \eqn{\phi = V(2)/V(1) - 1}.
 }
+\examples{
+tr <- estimate_trends(morro_bay$o2, morro_bay$ph, h = 4)
+nz <- estimate_ar1_noise(morro_bay$o2, morro_bay$ph,
+                         trend1 = tr$ma1, trend2 = tr$ma2, h = 4)
+c(o2 = nz$series1$ar, ph = nz$series2$ar)
+c(o2 = nz$series1$sigma2, ph = nz$series2$sigma2)
+
+}
 \references{
 Hall, P. and Van Keilegom, I. (2003). Using difference-based methods for
 inference in nonparametric regression with time series errors. \emph{Journal

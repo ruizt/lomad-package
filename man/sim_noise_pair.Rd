@@ -68,6 +68,13 @@ both series) or as a length-2 vector / list (one per series). Seeds for the
 two calls are derived independently from \code{seed} so that the two noise
 processes are not identical.
 }
+\examples{
+tr  <- sim_trends(500, d = 0, method = "rs", bw = 50, seed = 101)
+sim <- suppressMessages(
+  sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 102))
+c(s1 = sim$noise$series1$mean_snr, s2 = sim$noise$series2$mean_snr)
+
+}
 \seealso{
 \code{\link[=sim_noise]{sim_noise()}}, \code{\link[=sim_trends]{sim_trends()}}
 }

@@ -44,3 +44,9 @@ shifted left. The shading stops at the moving averages: the inference is
 about decoupling of the smoothed series, so the further \eqn{h - 1} raw
 observations behind each smoothed value are not included.
 }
+\examples{
+fit <- lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60)
+tst <- lomad_test(fit, alpha = 0.05)
+lomad_plot(fit, tst, dates = morro_bay$datetime)
+
+}

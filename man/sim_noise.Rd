@@ -72,6 +72,14 @@ PACF parameterisation: partial autocorrelations are drawn uniformly from
 (-0.95, 0.95) and converted to coefficients via the Durbin-Levinson
 recursion, which guarantees causality and invertibility by construction.
 }
+\examples{
+tr  <- sim_trends(500, d = 0, method = "rs", bw = 50, seed = 101)
+out <- suppressMessages(
+  sim_noise(tr$x1, h = 5, ar.coefs = 0.5, lambda_target = 1.5, seed = 102))
+out$diagnostics$mean_snr
+out$diagnostics$noise_var_ratio       # should be near 1
+
+}
 \seealso{
 \code{\link[=sim_noise_pair]{sim_noise_pair()}}, \code{\link[=sim_trends]{sim_trends()}}
 }
