@@ -31,7 +31,7 @@ authors:
     given-names: Trevor
     orcid: "https://orcid.org/0009-0001-1452-2542"
   - family-names: Seifert
-    given-names: Alea
+    given-names: Aléa
   - family-names: Hamilton
     given-names: Emma
   - family-names: Mispagel
@@ -41,9 +41,9 @@ authors:
 preferred-citation:
   type: unpublished
   title: >-
-    Inference for local trend similarity in nonstationary time series via
-    rolling correlation, with application to assessing stability in an
-    estuarine system
+    Affine-invariant inference for local trend similarity in nonstationary
+    time series, with application to biogeochemical decoupling in an
+    estuary
   year: 2026
   notes: Manuscript in preparation
   authors:
@@ -51,13 +51,11 @@ preferred-citation:
       given-names: Trevor
       orcid: "https://orcid.org/0009-0001-1452-2542"
     - family-names: Seifert
-      given-names: Alea
+      given-names: Aléa
     - family-names: Hamilton
       given-names: Emma
     - family-names: Mispagel
       given-names: Catherine
-    - family-names: Hunt
-      given-names: Otis
     - family-names: Garcia
       given-names: Jose
     - family-names: Bockmon

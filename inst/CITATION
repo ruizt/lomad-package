@@ -4,13 +4,12 @@ citHeader("To cite lomad in publications, please cite the methods paper. Cite th
 bibentry(
   bibtype  = "Unpublished",
   key      = "lomad-paper",
-  title    = "Inference for local trend similarity in nonstationary time series via rolling correlation, with application to assessing stability in an estuarine system",
+  title    = "Affine-invariant inference for local trend similarity in nonstationary time series, with application to biogeochemical decoupling in an estuary",
   author   = c(
     person("Trevor",    "Ruiz"),
-    person("Alea",      "Seifert"),
+    person("Al\u00e9a",    "Seifert"),
     person("Emma",      "Hamilton"),
     person("Catherine", "Mispagel"),
-    person("Otis",      "Hunt"),
     person("Jose",      "Garcia"),
     person("Emily",     "Bockmon")
   ),
@@ -25,7 +24,7 @@ bibentry(
   title    = "{lomad}: Local Moving Average Decoupling",
   author   = c(
     person("Trevor",    "Ruiz",      email = "truiz01@calpoly.edu"),
-    person("Alea",      "Seifert"),
+    person("Al\u00e9a",    "Seifert"),
     person("Emma",      "Hamilton"),
     person("Catherine", "Mispagel"),
     person("Andres Efren Rocha", "Jayasinha")
