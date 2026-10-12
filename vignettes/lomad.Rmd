@@ -18,37 +18,21 @@ library(lomad)
 
 ## Overview
 
-`lomad` (**lo**cal **m**oving **a**verage **d**ecoupling) tests whether the
-underlying trends of two noisy time series are *locally similar* — moving
-together up to a location shift — or whether they *decouple* over some time
-windows. Given paired series following a trend-plus-noise model, the method:
+`lomad` (**lo**cal **m**oving **a**verage **d**ecoupling) tests whether the underlying trends of two time series are *locally similar* — moving together up to an affine transformation — or whether they *decouple* over some time windows via rolling correlations. The method assumes a trend-plus-noise model and:
 
-1. smooths each series with a moving average of width $h$ to expose the trends;
-2. computes the rolling correlation $R_t$ of the smoothed series over windows
-   of length $s$;
-3. compares $R_t$ pointwise against the local population correlation
-   $\rho_t$ implied by the null of local affine similarity, using a CLT-based $Z$
-   statistic with Benjamini–Yekutieli false discovery rate control.
+1.  smooths each series with a moving average of width $h$ to expose the trends;
+2.  computes the rolling correlation $R_t$ of the smoothed series over windows of length $s$ to measure local similarity up to an affine transformation;
+3.  compares $R_t$ pointwise against the local population correlation $\rho_t$ implied by the null of local affine similarity, using a CLT-based $Z$ statistic with Benjamini–Yekutieli false discovery rate control across all windows.
 
-Intuitively, trends that agree up to a local affine map induce the highest
-local correlation attainable at the prevailing signal-to-noise ratio —
-correlation is invariant to shifting and rescaling either series, so a
-changing level or scale costs nothing. Genuine trend separation attenuates
-$R_t$ below that benchmark. The null quantities $\rho_t$ and $V_t$ are
-estimated from the data using a variogram-based noise fit that is robust to
-trend contamination.
+Intuitively, trends that agree up to a local affine map induce the highest local correlation attainable at the prevailing signal-to-noise ratio — correlation is invariant to shifting and rescaling either series. Genuine trend separation attenuates $R_t$ below that benchmark. The null quantities $\rho_t$ and $V_t$ are estimated from the data using a variogram-based method (Hall & Van Keilegom, 2003).
 
-This vignette walks through the workflow twice: on simulated data where the
-truth is known, and on real estuarine monitoring data.
+This vignette illustrates applications on simulated data where the truth is known and on a real data example drawn from the paper (Ruiz *et al.,* 2026+), and provides a brief overview of the simulation capabilities of the package.
 
-## Simulated example
+## Inference with the `lomad` package
 
-We build two scenarios from the same base trends and noise process. In the
-coupled scenario the trends are related by a fixed affine map, $\nu_2 = 2\nu_1$
-— a series on an entirely different scale, which nonetheless satisfies the null
-of local similarity everywhere. In the decoupled scenario the trends separate
-in localized episodes. Generating them here rather than shipping them keeps the
-data transparent: every parameter of the simulation is visible.
+### Simulated data example
+
+We build two scenarios from the same base trends and noise process. In the coupled scenario the trends are related by a fixed affine map, $\nu_2 = 2\nu_1$, which puts the series on different scales but nonetheless satisfies the null of local similarity everywhere. In the decoupled scenario the trends separate in localized episodes.
 
 ```{r data}
 make_scenario <- function(d, seed = 101, ...) {
@@ -65,47 +49,43 @@ dcp <- make_scenario(d = 1.5)    # decoupled: localized separation
 str(dcp)
 ```
 
-The coupled case is worth dwelling on. Its two trends are nowhere equal — one
-is twice the other — yet the test should stay silent, because correlation is
-unchanged by shifting or rescaling either series. That is what local affine
-similarity buys: the two series need not be on a common scale, or even measure
-the same thing in the same units, before they can be compared.
+As an aside, this illustrates use of the simulation functions in the package for trend construction and noise generation. More detail is provided on those functions later.
 
-The observed series are dominated by noise; the trends (which we know here,
-but would not in practice) are shown in black:
+The observed series and trends are shown below for each scenario.
 
-```{r raw-series, fig.height = 5.5}
-# Shared y limits: the panels are only comparable on a common scale.
-ylim <- range(c(dcp$y1, dcp$y2))
-
-op <- par(mfrow = c(2, 1), mar = c(3.5, 4, 2, 1))
-plot(dcp$t, dcp$y1, type = "l", col = "grey70", ylim = ylim,
-     main = "Decoupled scenario: series 1", xlab = "t", ylab = "y1")
-lines(dcp$t, dcp$nu1, lwd = 2)
-plot(dcp$t, dcp$y2, type = "l", col = "grey70", ylim = ylim,
-     main = "Decoupled scenario: series 2", xlab = "t", ylab = "y2")
-lines(dcp$t, dcp$nu2, lwd = 2)
+```{r trends-overlay, fig.height = 3}
+op <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+for (sc in list(list(z = cpl, main = "Coupled"), list(z = dcp, main = "Decoupled"))) {
+  z <- sc$z
+  plot(z$t, z$y1, type = "l", col = adjustcolor("#0072B2", 0.3), xlab = "t", ylab = "",
+       ylim = range(c(z$y1, z$y2, z$nu1, z$nu2)), main = sc$main)
+  lines(z$t, z$y2, col = adjustcolor("#D55E00", 0.3))
+  lines(z$t, z$nu1, lwd = 2, col = "#0072B2")
+  lines(z$t, z$nu2, lwd = 2, col = "#D55E00")
+}
+legend("bottomright", c(expression(nu[1]), expression(nu[2])),
+       col = c("#0072B2", "#D55E00"), lwd = c(2, 2), bty = "n")
 par(op)
 ```
 
-The trends are close enough that the difference is hard to see at this scale —
-which is the point: separation that matters for the test need not be visible by
-eye. Overlaying just the two trends makes it legible:
+Note that coupling is trend similarity under affine rescaling. Supplying the (ordinarily unknown) affine transformation shows alignment without the visual separation in the simulated data.
 
-```{r trends-overlay, fig.height = 3}
-plot(dcp$t, dcp$nu1, type = "l", lwd = 2, col = "#0072B2", ylim = range(c(dcp$nu1, dcp$nu2)),
-     main = "True trends", xlab = "t", ylab = expression(nu))
-lines(dcp$t, dcp$nu2, lwd = 2, col = "#D55E00")
-legend("topright", c(expression(nu[1]), expression(nu[2])),
-       col = c("#0072B2", "#D55E00"), lwd = 2, bty = "n", horiz = TRUE)
+```{r affine-aligned, fig.height = 3}
+plot(cpl$t, cpl$y1, type = "l", col = adjustcolor("#0072B2", 0.3), xlab = "t", ylab = "",
+     ylim = range(c(cpl$y1, cpl$y2 / 2, cpl$nu1, cpl$nu2 / 2)),
+     main = "Coupled scenario, rescaled")
+lines(cpl$t, cpl$y2 / 2, col = adjustcolor("#D55E00", 0.3))
+lines(cpl$t, cpl$nu1, lwd = 2, col = "#0072B2")
+lines(cpl$t, cpl$nu2 / 2, lwd = 2, col = "#D55E00")
+legend("bottomright", c(expression(nu[1]), expression(nu[2] / 2)),
+       col = c("#0072B2", "#D55E00"), lwd = c(2, 2), bty = "n")
 ```
 
-### Fitting and testing
 
-`lomad_fit()` runs the estimation pipeline and `lomad_test()` applies the
-FDR-corrected pointwise test; `lomad()` wraps both. We use the smoothing
-bandwidth the data were calibrated at ($h = 5$) and a rolling window of
-$s = 125$ points:
+
+### Model fitting and inference
+
+`lomad_fit()` runs the estimation pipeline and `lomad_test()` applies the FDR-corrected pointwise test; `lomad()` wraps both. We use the smoothing bandwidth the data were calibrated at ($h = 5$) and a rolling window of $s = 125$ points:
 
 ```{r fit}
 fit_cpl <- lomad_fit(cpl$y1, cpl$y2, h = 5, s = 125)
@@ -127,41 +107,15 @@ In the decoupled scenario the test flags contiguous runs of time points:
 sum(tst_dcp$rejected, na.rm = TRUE)
 ```
 
-`lomad_plot()` displays the smoothed series and the rolling correlation
-against its null benchmark, shading the flagged windows. Two features are
-worth reading carefully. The upper band is *wider* than the lower one and sits
-to its left: a rejection at time $t$ concerns the whole window
-$W_t = \{t-s+1, \ldots, t\}$, so the upper panel spans the smoothed values
-that entered the correlation, while the lower panel marks the $t$ where $R_t$
-is plotted. The grey ribbon in the lower panel is the null tolerance band,
-running from $\rho_t$ down to the critical value below which $R_t$ is
-flagged; the test fires exactly where $R_t$ leaves it.
+`lomad_plot()` displays the smoothed series and the rolling correlation against its null benchmark, shading the flagged windows. Here the window size is large enough that the test does not differentiate the two episodes.
 
 ```{r plot-decoupled, fig.height = 6}
 lomad_plot(fit_dcp, tst_dcp)
 ```
 
-Neither panel shows the test statistic itself. `lomad_test()` returns it, and
-plotting it makes the decision rule concrete: $Z_t$ is standard normal under
-the null, and a window is flagged when it falls below the BY-adjusted
-threshold.
+The upper band is wider than the lower one and sits to its left: a rejection at time $t$ concerns the whole window $W_t = \{t-s+1, \ldots, t\}$, so the upper panel spans the smoothed values that entered the correlation, while the lower panel shows $R_t$ as indexed by window endpoint. The grey ribbon in the lower panel is the null tolerance band, running from $\rho_t$ down to the critical value below which the test rejects.
 
-```{r z-stat, fig.height = 3}
-plot(dcp$t, tst_dcp$Z, type = "l", col = "grey40",
-     xlab = "t", ylab = expression(Z[t]), main = "Test statistic")
-abline(h = 0, col = "grey70", lty = 2)
-abline(h = qnorm(tst_dcp$alpha_eff), col = "steelblue", lty = 2)
-rej <- which(tst_dcp$rejected)
-points(rej, tst_dcp$Z[rej], col = "#D55E00", pch = 16, cex = 0.6)
-```
-
-The dashed blue line is `qnorm(tst$alpha_eff)`; orange points are the
-rejections. Note it sits well below the -1.64 of an uncorrected one-sided
-test at 5% — that gap is the Benjamini–Yekutieli correction paying for
-`r sum(!is.na(tst_dcp$rejected))` simultaneous tests.
-
-Because this is simulated data, we can verify the flags line up with the true
-separation episodes:
+Because this is simulated data, we can verify the flags line up with the true separation episodes:
 
 ```{r truth-check}
 sep <- abs(dcp$nu1 - dcp$nu2)
@@ -171,28 +125,17 @@ flagged <- which(tst_dcp$rejected)
 rug(flagged, col = "red", lwd = 2)
 ```
 
-The flagged points (red rug) concentrate where the true trends actually
-separate. Note the test flags windows where the *rolling correlation over the
-trailing $s$ points* is depressed, so flags trail the onset of separation —
-localization is at window, not point, resolution.
+While flagged points (red rug) concentrate where the true trends actually separate, as noted above flagged points trail the onset of separation because localization is at window, not point, resolution.
 
-## Real-data example: Morro Bay
+### Real data example: Morro Bay
 
-The packaged dataset `morro_bay` contains one contiguous block of
-quality-controlled dissolved oxygen and pH monitoring data from the Bay Mouth
-station of the Morro Bay estuary (CeNCOOS sensors), covering August to
-October 2022, standardized, tidally presmoothed, and downsampled to 6-hourly
-resolution (see `?morro_bay`).
-Dissolved oxygen and pH are biogeochemically linked in an estuary, so
-persistent local decoupling of their trends is a potential indicator of a
-disturbance to the system.
+The packaged dataset `morro_bay` contains one contiguous block of quality-controlled dissolved oxygen and pH monitoring data from the Bay Mouth station of the Morro Bay estuary (CeNCOOS sensors), covering August to October 2022, standardized, tidally presmoothed, and downsampled to 6-hourly resolution (see `?morro_bay`). Dissolved oxygen and pH are linked, so persistent local decoupling of their trends is a potential indicator of a disturbance to the system.
 
 ```{r mb-data}
 range(morro_bay$datetime)
 ```
 
-With 6-hourly data we smooth over one day ($h = 4$) and use 15-day rolling
-windows ($s = 60$), matching the accompanying paper's application:
+With 6-hourly data we smooth over one day ($h = 4$) and use 15-day rolling windows ($s = 60$), matching the accompanying paper's application:
 
 ```{r mb-fit}
 fit_mb <- lomad_fit(morro_bay$o2, morro_bay$ph, h = 4, s = 60)
@@ -204,29 +147,11 @@ sum(tst_mb$rejected, na.rm = TRUE)
 lomad_plot(fit_mb, tst_mb, dates = morro_bay$datetime)
 ```
 
-The test flags one sustained episode, in mid-September, in which the local
-correlation between oxygen and pH trends falls well below its affine-similarity
-benchmark: $R_t$ reaches $0.03$ inside the flagged run while $\rho_t$ there
-sits between 0.73 and 0.85. What the test responds to is that gap, scaled by
-$\sqrt{V_t/s}$ — not the level of $R_t$ on its own. Elsewhere in the block
-$R_t$ dips without being flagged, because $\rho_t$ dips with it.
+The test flags one sustained episode, in mid-September, in which the local correlation between oxygen and pH trends falls well below its affine-similarity benchmark.
 
-## Checking the noise estimate
+### Diagnostic check
 
-`lomad_fit()` fits an AR(1) to each series' residuals, and the fit can only be
-trusted if those residuals are something an AR(1) could have produced. One
-quick check on real data establishes that.
-
-**Is the noise model admissible?** The fit uses two variogram lags, and for a
-stationary AR(1) the identity $V(2)/V(1) = 1 + \phi$ caps that ratio at 2.
-Subtracting a moving average complicates matters — it removes part of the noise
-along with the trend, leaving a high-pass-filtered AR(1) whose attainable ratio
-is narrower than $[1, 2]$ — so the check compares the observed ratio against
-the range that filtering actually permits. A value outside it means no AR(1),
-put through this smoother, could have generated these residuals. In practice
-that happens when the series has been oversmoothed upstream, or when the trend
-varies fast enough that the moving average cannot track it, in which case the
-leftover trend inflates $\hat\phi$ toward its clamp.
+The noise model fit uses two variogram lags, and for a stationary AR(1) the identity $V(2)/V(1) = 1 + \phi$ caps that ratio at 2. Subtracting a moving average removes part of the noise along with the trend, leaving a high-pass-filtered AR(1) whose attainable ratio is narrower than $[1, 2]$. A diagnostic check in this instance compares the observed ratio against the attainable range.
 
 ```{r diagnostic}
 vgram <- function(x, l) mean((x[(l + 1):length(x)] - x[1:(length(x) - l)])^2) / 2
@@ -271,25 +196,11 @@ lomad_diagnose <- function(y1, y2, fit, h) {
 lomad_diagnose(morro_bay$o2, morro_bay$ph, fit_mb, h = 4)
 ```
 
-Both ratios sit inside the attainable range, so the AR(1) fit is admissible
-here.
+### Supplying your own noise model
 
-The check assumes the noise model is *correctly specified*. It does not detect
-a wrong model: the AR(1) fit reproduces $V(1)$ and $V(2)$ exactly by
-construction, so misspecification that shows up only in the tail of the
-autocovariance is invisible to it.
+`lomad_fit()` provides a variogram-based AR(1) fit. If AR(1) does not describe your data you can estimate the autocovariance however you prefer and pass it in through `noise_override`, which accepts a raw sequence `gamma(0), gamma(1), ...` per series.
 
-## Supplying your own noise model
-
-`lomad_fit()` provides one noise estimator, a variogram-based AR(1) fit. The
-inferential results themselves hold for any stationary noise process, so if
-AR(1) does not describe your data you can estimate the autocovariance however
-you prefer and pass it in through `noise_override`, which accepts a raw
-sequence `gamma(0), gamma(1), ...` per series.
-
-To show the mechanics, here is the *same* AR(1) estimate the package computes
-internally, reproduced step by step and supplied through the override. Working
-this out explicitly makes it clear where to substitute a different estimator.
+To show the mechanics, here is the same AR(1) estimate the package computes internally, reproduced step by step and supplied through the override.
 
 ```{r override}
 # 1. each series against its own smoothed trend, as lomad_fit() forms them.
@@ -329,57 +240,19 @@ fit_ov <- lomad_fit(morro_bay$o2, morro_bay$ph, h = h, s = s, noise_override = o
 max(abs(fit_ov$rho - fit_mb$rho), na.rm = TRUE)
 ```
 
-Replace step 2 with any estimator of your choosing — a higher-order AR fit, a
-tapered sample autocovariance, or a model fitted elsewhere — and the rest of
-the pipeline is unchanged. Note that estimating noise autocovariance in the
-presence of an unknown trend is a genuinely hard problem: differencing removes
-smooth trends but not entirely, and residual trend structure biases the
-autocovariance upward. See `vignette` references and the accompanying paper's
-discussion.
+## Simulating data with the `lomad` package
 
-## Choosing h and s
-
-- **`h` (smoothing bandwidth)** should span the dominant noise scale while
-  remaining short relative to the scale on which the trends vary: larger `h`
-  suppresses more noise but biases the trend estimate where it bends.
-- **`s` (rolling window)** trades temporal resolution against stability of
-  the local correlation; the underlying asymptotics treat `s` as large. As a
-  rule of thumb, `s` should cover at least several `h`-widths.
-- Passing `h = NULL, s = NULL` invokes simple length-based defaults, but for
-  real applications both should be chosen from subject-matter time scales, as
-  done above (1-day smoothing, 15-day windows).
-
-## Simulating your own scenarios
-
-The packaged data covers one coupled and one decoupled case. To ask whether the
-method would see *your* problem — a separation of a given size, at your noise
-level and series length — build the scenario yourself. This is also how the
-accompanying paper's simulation studies are constructed.
-
-`sim_trends()` generates a pair of trends whose separation scales with $d$.
-How that separation is distributed over time is set by `method`:
+`sim_trends()` generates a pair of trends whose separation scales with $d$. How that separation is distributed over time is set by `method`:
 
 | `method` | Separation pattern |
-|---|---|
+|------------------------------------|------------------------------------|
 | `"dist"` | unstructured — the trends differ everywhere, with no episode structure |
 | `"fr"` | fixed rate: separation concentrated at evenly spaced events, at rate `rate` |
 | `"rs"` | episodes at irregular times, trends pushed apart symmetrically |
 | `"rm"` | as `"rs"`, but the trends may cross rather than only diverge |
 
-Separation is linear in $d$, but $d$ is not itself the separation: because the
-structures distribute it differently in time, the same $d$ gives noticeably
-different *local* separation across them. If you need the structures to be
-comparable, scale $d$ per structure rather than sharing one value.
-
-### Series that are only locally similar
-
-The null the method tests is *local affine similarity*: $\nu_{2t} = a_t + b_t
-\nu_{1t}$, where the coefficients may drift, so long as they are near constant
-within any one window. Two series that satisfy this are alike locally while
-their levels and scales can differ completely over the series as a whole.
-
-`sim_trends()` builds such a pair with `affine_s`, the window the drift is
-capped against:
+`sim_trends()` optionally constructs trend pairs under drifting local affine similarity, *i.e.*, satisfying $\nu_{2t} = a_t + b_t
+\nu_{1t}$ with time-varying $a_t, b_t$, with `affine_s` and `affine_cap` controlling the amount and scale of drift.
 
 ```{r affine}
 tr <- sim_trends(n = 2500, d = 0, method = "rs", bw = 50, nb = 151,
@@ -387,18 +260,9 @@ tr <- sim_trends(n = 2500, d = 0, method = "rs", bw = 50, nb = 151,
 range(tr$b)      # gradient drifts across the series
 ```
 
-The cap bounds how far $a_t$ and $b_t$ can move over any window of length
-`affine_s`, which is what keeps the pair similar *locally*; across the whole
-series the drift accumulates freely, so distant windows see genuinely different
-maps. `affine_cap = 0` disables the drift, and supplying `affine_a` / `affine_b`
-directly imposes a map of your choosing — `affine_b = rep(2, n)` for a fixed
-doubling, say. Neither draws random numbers, so a seed behaves the same as it
-does with the layer switched off.
+`affine_cap = 0` disables the drift, and supplying `affine_a` / `affine_b` directly imposes a map of your choosing — `affine_b = rep(2, n)` for a fixed doubling, say. Neither draws random numbers, so a seed behaves the same as it does with the layer switched off. See `?sim_trends` for more details.
 
-The structured methods work through a *coupling weight* $w_t$: the trends sit
-on top of each other where $w_t \approx 1$ and separate as it falls. Plotting
-$w_t$ alongside the trends shows exactly where the method should have
-something to find.
+The structured methods work through a coupling weight $w_t$: the trends sit on top of each other where $w_t \approx 1$ and separate as it falls.
 
 ```{r sim-structures, fig.height = 6}
 op <- par(mfrow = c(3, 2), mar = c(3, 4, 2, 1))
@@ -418,17 +282,27 @@ for (m in c("fr", "rs", "rm")) {
 par(op)
 ```
 
-`sim_noise_pair()` then adds ARMA noise, calibrated so the signal-to-noise
-ratio hits a target at a given smoothing bandwidth — which is what makes runs
-comparable across scenarios rather than depending on the trend's amplitude:
+`sim_noise_pair()` then adds ARMA noise to the output of `sim_trends` (or user-supplied trends), calibrated so the signal-to-noise ratio hits a target at a given smoothing bandwidth.
 
 ```{r sim-noise}
 tr  <- sim_trends(n = 500, d = 1.5, method = "rs", bw = 50, seed = 6183)
 sim <- sim_noise_pair(tr, h = 5, lambda_target = 1.5, ar.coefs = 0.5, seed = 6184)
 ```
 
-Putting it together — simulate, fit, test, and see where the method fires
-relative to where the trends actually separate:
+Here is a plot of the simulated trends and simulated series.
+
+```{r sim-noise-overlay, fig.height = 3}
+plot(sim$y1, type = "l", col = adjustcolor("#0072B2", 0.3), xlab = "t", ylab = "",
+     ylim = range(c(sim$y1, sim$y2, tr$x1, tr$x2)),
+     main = "Simulated trends and series")
+lines(sim$y2, col = adjustcolor("#D55E00", 0.3))
+lines(tr$x1, lwd = 2, col = "#0072B2")
+lines(tr$x2, lwd = 2, col = "#D55E00")
+legend("bottomright", c(expression(nu[1]), expression(nu[2])),
+       col = c("#0072B2", "#D55E00"), lwd = c(2, 2), bty = "n")
+```
+
+Now passing the simulated data through the inference pipeline we can compare where the test rejects relative to where the trends actually separate.
 
 ```{r sim-worked, fig.height = 4.5}
 out <- lomad(sim$y1, sim$y2, h = 5, s = 125)
@@ -444,25 +318,14 @@ lines(out$fit$rho, col = "steelblue", lwd = 2)
 par(op)
 ```
 
-Two things to expect. Flags *trail* the onset of separation, because $R_t$ is
-computed over the trailing window $W_t$ — localization is at window
-resolution, not point resolution. And detection depends on separation relative
-to noise *within a window*, not on $d$: at the same $d$, a structure that
-concentrates its separation into brief episodes is far easier to see than one
-that spreads it evenly, because only the former ever makes a window locally
-dissimilar enough to detect.
+As before, rejections trail the onset of separation because $R_t$ is computed over the trailing window $W_t$ and localization is at window resolution, not point resolution. Note also that at the same $d$, a structure that concentrates its separation into brief episodes is far easier to detect than one that spreads it evenly, because concentrated separation produces more local dissimilarity at the window level.
 
 ## Notes
 
-- The pointwise test is one-sided: only correlation *deficits* relative to
-  the null benchmark count as evidence of decoupling.
-- `lomad_test()` reports the effective significance threshold
-  (`alpha_eff`) implied by the Benjamini–Yekutieli correction.
-- Heed warnings from the AR(1) variogram estimator about boundary fits: a
-  clamped estimate means the AR(1) model is straining, and under strong
-  autocorrelation the noise variance can be overstated, which costs power.
-- Oracle-style analyses (known noise parameters) can bypass estimation via
-  the `noise_override` argument of `lomad_fit()`, which accepts either
-  parametric coefficients or a raw autocovariance sequence (`acov`). The
-  latter is the route for supplying a noise model the package does not
-  itself fit.
+- Choosing h and s
+  - **`h` (smoothing bandwidth)** should span the dominant noise scale while remaining short relative to the scale on which the trends vary: larger `h` suppresses more noise but biases the trend estimate where it bends.
+  - **`s` (rolling window)** trades temporal resolution against stability of the local correlation; the underlying asymptotics treat `s` as large. As a rule of thumb, `s` should cover at least several `h`-widths.
+  - Passing `h = NULL, s = NULL` invokes simple length-based defaults, but for real applications both should be chosen from subject-matter time scales, as done above (1-day smoothing, 15-day windows).
+- `lomad_test()` reports the effective significance threshold (`alpha_eff`) implied by the Benjamini–Yekutieli correction.
+- Heed warnings from the AR(1) variogram estimator about boundary fits: a clamped estimate means the AR(1) model is straining, and under strong autocorrelation the noise variance can be overstated, which costs power.
+- Oracle-style analyses with known noise parameters can bypass estimation via the `noise_override` argument of `lomad_fit()`, which accepts either parametric coefficients or a raw autocovariance sequence (`acov`). The latter is the route for supplying a noise model the package does not itself fit.

@@ -15,8 +15,17 @@ Authors@R: c(
            comment = "independent validation implementation"),
     person("Emily", "Bockmon", role = "ctb",
            comment = "Morro Bay monitoring data"))
-Description: Detects localized periods of decoupling between two
-    time series using correlations between local moving averages.
+Description: Detects localized periods of decoupling between two time series
+    using correlations between local moving averages. Trends are extracted by
+    moving average and noise autocovariance is estimated from the residual
+    variogram; the local sample correlation is then compared against its value
+    under a null of local affine similarity by pointwise one-sided Z-tests.
+    Simultaneous inference across overlapping windows uses the step-up
+    procedure of Benjamini and Yekutieli (2001)
+    <doi:10.1214/aos/1013699998>, controlling the false discovery rate under
+    arbitrary dependence. Includes a quality-controlled sample of dissolved
+    oxygen and pH monitoring data from the Morro Bay estuary, collected by the
+    Central and Northern California Ocean Observing System (CeNCOOS).
 License: MIT + file LICENSE
 URL: https://github.com/ruizt/lomad-package,
     https://doi.org/10.5281/zenodo.21695840

@@ -14,8 +14,8 @@ abstract: >-
   the Morro Bay estuary, collected by the Central and Northern California Ocean
   Observing System (CeNCOOS) and contributed by Emily Bockmon.
 type: software
-version: 0.0.1
-date-released: "2026-07-29"
+version: 0.1.0
+date-released: "2026-10-12"
 license: MIT
 doi: "10.5281/zenodo.21695840"
 repository-code: "https://github.com/ruizt/lomad-package"
